@@ -1,0 +1,79 @@
+name: Deploy GitHub Pages
+
+on:
+  push:
+    branches: ["main"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: "pages"
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    env:
+      SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+      SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+      WHATSAPP_NUMBER: ${{ secrets.WHATSAPP_NUMBER }}
+      BUSINESS_NAME: ${{ vars.BUSINESS_NAME || 'Bolis Gourmet' }}
+      CURRENCY_SYMBOL: ${{ vars.CURRENCY_SYMBOL || '$' }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configure Pages
+        uses: actions/configure-pages@v5
+
+      - name: Validate required secrets
+        run: |
+          set -euo pipefail
+          [ -n "${SUPABASE_URL}" ] || (echo "Missing SUPABASE_URL secret" && exit 1)
+          [ -n "${SUPABASE_ANON_KEY}" ] || (echo "Missing SUPABASE_ANON_KEY secret" && exit 1)
+          [ -n "${WHATSAPP_NUMBER}" ] || (echo "Missing WHATSAPP_NUMBER secret" && exit 1)
+
+      - name: Build static artifact with runtime config
+        run: |
+          set -euo pipefail
+          mkdir -p site/js
+          rsync -av \
+            --exclude ".git" \
+            --exclude ".github" \
+            --exclude "logs" \
+            --exclude "js/config.js" \
+            ./ site/
+
+          supabase_url_json="$(jq -Rn --arg v "$SUPABASE_URL" '$v')"
+          supabase_anon_key_json="$(jq -Rn --arg v "$SUPABASE_ANON_KEY" '$v')"
+          whatsapp_number_json="$(jq -Rn --arg v "$WHATSAPP_NUMBER" '$v')"
+          business_name_json="$(jq -Rn --arg v "$BUSINESS_NAME" '$v')"
+          currency_symbol_json="$(jq -Rn --arg v "$CURRENCY_SYMBOL" '$v')"
+
+          cat > site/js/config.js <<EOF
+          // Generated during GitHub Actions deploy. Do not edit manually.
+          const SUPABASE_URL = ${supabase_url_json};
+          const SUPABASE_ANON_KEY = ${supabase_anon_key_json};
+          const FUNCTIONS_URL = SUPABASE_URL !== 'https://TU_PROYECTO.supabase.co'
+            ? SUPABASE_URL + '/functions/v1'
+            : null;
+          const WHATSAPP_NUMBER = ${whatsapp_number_json};
+          const BUSINESS_NAME = ${business_name_json};
+          const CURRENCY_SYMBOL = ${currency_symbol_json};
+          EOF
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: site
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

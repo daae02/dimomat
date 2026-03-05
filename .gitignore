@@ -35,5 +35,5 @@ supabase/.env
 Thumbs.db
 desktop.ini
 
-# Local secrets config
+# Local runtime config (do not commit real values)
 js/config.js

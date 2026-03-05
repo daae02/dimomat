@@ -211,13 +211,23 @@ git push -u origin main
 ### 7.3 Activar GitHub Pages
 
 1. En tu repositorio, ve a **Settings** (engranaje)
-2. En el menú lateral, haz clic en **Pages**
-3. En **"Source"**, selecciona **"Deploy from a branch"**
-4. En **"Branch"**, selecciona **"main"** y carpeta **"/ (root)"**
-5. Haz clic en **"Save"**
-6. Espera 1-2 minutos y recarga la página
-7. Verás: `Your site is published at https://TU_USUARIO.github.io/bolis-gourmet/`
+2. En el menu lateral, haz clic en **Pages**
+3. En **"Source"**, selecciona **"GitHub Actions"**
+4. Haz clic en **"Save"**
 
+### 7.4 Configurar Secrets de GitHub (deploy)
+
+1. Ve a **Settings -> Secrets and variables -> Actions**
+2. En **Secrets**, crea estos 3 secretos:
+   - `SUPABASE_URL`
+   - `SUPABASE_ANON_KEY`
+   - `WHATSAPP_NUMBER`
+3. (Opcional) En **Variables**, crea:
+   - `BUSINESS_NAME` (ej. `Bolis Gourmet`)
+   - `CURRENCY_SYMBOL` (ej. `$`)
+4. Haz push a `main` para ejecutar el workflow `.github/workflows/deploy-pages.yml`
+5. Espera 1-2 minutos y abre la URL publicada:
+   `https://TU_USUARIO.github.io/bolis-gourmet/`
 ---
 
 ## PASO 8: Verificar que todo funciona
