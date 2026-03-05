@@ -150,7 +150,8 @@ Deberías ver: `Deployed successfully` para cada una.
 
 ## PASO 6: Configurar el proyecto
 
-Abre el archivo `js/config.js` con cualquier editor de texto (Bloc de notas, VS Code, etc.) y actualiza:
+Primero copia `js/config.example.js` a `js/config.js` (este archivo es local y NO se versiona).  
+Luego abre `js/config.js` con cualquier editor de texto (Bloc de notas, VS Code, etc.) y actualiza:
 
 ```javascript
 const SUPABASE_URL = 'https://TU_PROYECTO.supabase.co';    // <- Pega tu Project URL

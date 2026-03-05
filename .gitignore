@@ -34,3 +34,6 @@ supabase/.env
 .DS_Store
 Thumbs.db
 desktop.ini
+
+# Local secrets config
+js/config.js
