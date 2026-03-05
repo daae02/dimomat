@@ -94,9 +94,12 @@ function renderFlavorCard(flavor) {
     ? '<img src="' + escapeHtml(flavor.image_url) + '" alt="' + escapeHtml(flavor.name) + '" loading="lazy" style="width:100%;height:100%;object-fit:cover" onerror="this.parentNode.innerHTML=\'<span style=font-size:3.5rem>' + emoji + '</span>\'">'
     : '<span style="font-size:3.5rem">' + emoji + '</span>';
 
-  var safeId = escapeHtml(String(flavor.id));
-  var safeName = escapeHtml(flavor.name);          // solo para display HTML
-  var nameForJs = JSON.stringify(flavor.name);     // nombre original para el argumento JS (evita doble-escape)
+  var safeName = escapeHtml(flavor.name); // solo para display HTML
+  // Serialize args safely for inline onclick inside a double-quoted HTML attribute.
+  var idForJs = JSON.stringify(String(flavor.id)).replace(/"/g, '&quot;');
+  var nameForJs = JSON.stringify(String(flavor.name || '')).replace(/"/g, '&quot;');
+  var priceForJs = Number(flavor.price);
+  if (!Number.isFinite(priceForJs)) priceForJs = 0;
   var btnDisabled = isOutOfStock ? 'disabled' : '';
   var btnText = isOutOfStock ? 'Agotado' : 'Agregar al carrito 🛒';
 
@@ -110,7 +113,7 @@ function renderFlavorCard(flavor) {
         stockBadge +
       '</div>' +
       '<button class="add-to-cart-btn" ' + btnDisabled +
-        ' onclick="handleAddToCart(\'' + safeId + '\', ' + nameForJs + ', ' + parseFloat(flavor.price) + ', this)">' +
+        ' onclick="handleAddToCart(' + idForJs + ', ' + nameForJs + ', ' + priceForJs + ', this)">' +
         btnText +
       '</button>' +
     '</div>' +
