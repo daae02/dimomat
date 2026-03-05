@@ -1,0 +1,861 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Bolis Gourmet — Mockup de Diseno UI/UX</title>
+
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&family=Pacifico&display=swap" rel="stylesheet" />
+
+  <style>
+    /* ================================================
+       BOLIS GOURMET - Estilos Personalizados
+       Complementa Tailwind CSS CDN
+       ================================================ */
+
+    :root {
+      --color-primary: #FF6B6B;
+      --color-primary-dark: #EE5A5A;
+      --color-secondary: #FFD93D;
+      --color-accent: #6BCB77;
+      --color-purple: #845EC2;
+      --color-blue: #4D96FF;
+      --bg-main: #FFF9F0;
+      --bg-card: #FFFFFF;
+      --bg-header: #FF6B6B;
+      --text-primary: #2D3748;
+      --text-secondary: #718096;
+      --text-light: #FFFFFF;
+      --border-radius: 16px;
+      --border-radius-sm: 8px;
+      --shadow-card: 0 4px 20px rgba(255, 107, 107, 0.15);
+      --shadow-hover: 0 8px 30px rgba(255, 107, 107, 0.3);
+      --shadow-header: 0 2px 20px rgba(0,0,0,0.1);
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      font-family: 'Nunito', sans-serif;
+      background-color: var(--bg-main);
+      color: var(--text-primary);
+      margin: 0;
+      padding: 0;
+    }
+
+    /* NAVBAR */
+    .navbar {
+      background: var(--bg-header);
+      box-shadow: var(--shadow-header);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      padding: 0.75rem 1.5rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .navbar-brand {
+      font-family: 'Pacifico', cursive;
+      font-size: 1.5rem;
+      color: white;
+      text-decoration: none;
+    }
+    .cart-btn {
+      background: white;
+      color: var(--color-primary);
+      border: none;
+      border-radius: 50px;
+      padding: 0.5rem 1.2rem;
+      font-family: 'Nunito', sans-serif;
+      font-weight: 700;
+      font-size: 1rem;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+      transition: transform 0.2s, box-shadow 0.2s;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+    }
+    .cart-btn:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.2); }
+    .cart-badge {
+      background: var(--color-secondary);
+      color: var(--text-primary);
+      border-radius: 50%;
+      width: 22px; height: 22px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.75rem;
+      font-weight: 900;
+    }
+
+    /* HERO */
+    .hero {
+      background: linear-gradient(135deg, var(--color-primary) 0%, #FF8E53 50%, var(--color-secondary) 100%);
+      padding: 3rem 1.5rem;
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+    }
+    .hero::before {
+      content: '🧊';
+      font-size: 8rem;
+      position: absolute;
+      top: -1rem; right: -1rem;
+      opacity: 0.15;
+      transform: rotate(15deg);
+    }
+    .hero-title {
+      font-family: 'Pacifico', cursive;
+      font-size: clamp(1.8rem, 5vw, 3rem);
+      color: white;
+      margin: 0 0 0.5rem;
+      text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
+    }
+    .hero-subtitle {
+      font-size: 1.1rem;
+      color: rgba(255,255,255,0.9);
+      margin: 0 0 1.5rem;
+    }
+    .hero-btn {
+      background: white;
+      color: var(--color-primary);
+      border: none;
+      border-radius: 50px;
+      padding: 0.8rem 2rem;
+      font-family: 'Nunito', sans-serif;
+      font-weight: 800;
+      font-size: 1.1rem;
+      cursor: pointer;
+      transition: transform 0.2s, box-shadow 0.2s;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+    }
+    .hero-btn:hover { transform: translateY(-3px); box-shadow: 0 8px 25px rgba(0,0,0,0.3); }
+
+    /* CATALOG SECTION */
+    .catalog-section { padding: 2rem 1.5rem; max-width: 1200px; margin: 0 auto; }
+    .section-title { font-family: 'Pacifico', cursive; font-size: 1.8rem; color: var(--color-primary); text-align: center; margin-bottom: 0.5rem; }
+    .section-subtitle { text-align: center; color: var(--text-secondary); margin-bottom: 2rem; }
+
+    /* GRID */
+    .flavors-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 1.5rem; }
+
+    /* FLAVOR CARD */
+    .flavor-card {
+      background: var(--bg-card);
+      border-radius: var(--border-radius);
+      box-shadow: var(--shadow-card);
+      overflow: hidden;
+      transition: transform 0.25s, box-shadow 0.25s;
+      cursor: pointer;
+    }
+    .flavor-card:hover { transform: translateY(-6px); box-shadow: var(--shadow-hover); }
+    .flavor-card-img {
+      width: 100%; height: 180px;
+      background: linear-gradient(135deg, #FFE5E5, #FFD1D1);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 4rem;
+    }
+    .flavor-card-body { padding: 1rem; }
+    .flavor-name { font-weight: 800; font-size: 1.05rem; color: var(--text-primary); margin: 0 0 0.3rem; }
+    .flavor-desc { font-size: 0.85rem; color: var(--text-secondary); margin: 0 0 0.75rem; line-height: 1.4; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+    .flavor-footer { display: flex; align-items: center; justify-content: space-between; }
+    .flavor-price { font-size: 1.2rem; font-weight: 900; color: var(--color-primary); }
+    .flavor-stock-badge { font-size: 0.75rem; font-weight: 700; padding: 0.2rem 0.6rem; border-radius: 50px; }
+    .badge-available { background: #D4EDDA; color: #155724; }
+    .badge-low { background: #FFF3CD; color: #856404; }
+    .badge-out { background: #F8D7DA; color: #721C24; }
+    .add-to-cart-btn {
+      width: 100%; margin-top: 0.75rem;
+      background: var(--color-primary); color: white;
+      border: none; border-radius: var(--border-radius-sm);
+      padding: 0.6rem;
+      font-family: 'Nunito', sans-serif; font-weight: 700; font-size: 0.95rem;
+      cursor: pointer; transition: background 0.2s, transform 0.15s;
+    }
+    .add-to-cart-btn:hover:not(:disabled) { background: var(--color-primary-dark); transform: scale(1.02); }
+    .add-to-cart-btn:disabled { background: #CBD5E0; cursor: not-allowed; }
+
+    /* SKELETON */
+    @keyframes skeleton-loading {
+      0%   { background-color: #f0f0f0; }
+      50%  { background-color: #e0e0e0; }
+      100% { background-color: #f0f0f0; }
+    }
+    .skeleton-card { background: white; border-radius: var(--border-radius); overflow: hidden; box-shadow: var(--shadow-card); }
+    .skeleton-img { height: 180px; animation: skeleton-loading 1.2s ease-in-out infinite; }
+    .skeleton-line { height: 14px; background: #f0f0f0; border-radius: 4px; margin: 8px 16px; animation: skeleton-loading 1.2s ease-in-out infinite; }
+
+    /* CART OVERLAY & DRAWER */
+    .cart-overlay {
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,0.5);
+      z-index: 200;
+      opacity: 0; pointer-events: none;
+      transition: opacity 0.3s;
+    }
+    .cart-overlay.open { opacity: 1; pointer-events: all; }
+    .cart-drawer {
+      position: fixed; top: 0; right: -420px;
+      width: 420px; max-width: 100vw; height: 100vh;
+      background: white; z-index: 201;
+      box-shadow: -4px 0 20px rgba(0,0,0,0.15);
+      transition: right 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+      display: flex; flex-direction: column;
+    }
+    .cart-drawer.open { right: 0; }
+    .cart-drawer-header {
+      background: var(--color-primary); color: white;
+      padding: 1.2rem 1.5rem;
+      display: flex; align-items: center; justify-content: space-between;
+      flex-shrink: 0;
+    }
+    .cart-drawer-title { font-family: 'Pacifico', cursive; font-size: 1.3rem; }
+    .cart-close-btn { background: none; border: none; color: white; font-size: 1.5rem; cursor: pointer; transition: transform 0.2s; }
+    .cart-close-btn:hover { transform: scale(1.2); }
+    .cart-items-list { flex: 1; overflow-y: auto; padding: 1rem; }
+    .cart-item { display: flex; align-items: center; gap: 0.75rem; padding: 0.75rem 0; border-bottom: 1px solid #f0f0f0; }
+    .cart-item-name { flex: 1; font-weight: 700; font-size: 0.95rem; }
+    .cart-item-price { font-weight: 800; color: var(--color-primary); font-size: 0.95rem; min-width: 60px; text-align: right; }
+    .qty-controls { display: flex; align-items: center; gap: 0.4rem; }
+    .qty-btn {
+      background: #f5f5f5; border: none; border-radius: 50%;
+      width: 28px; height: 28px;
+      font-size: 1rem; font-weight: 700; cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      transition: background 0.2s;
+    }
+    .qty-btn:hover { background: #e0e0e0; }
+    .qty-value { font-weight: 800; min-width: 24px; text-align: center; }
+    .remove-item-btn { background: none; border: none; color: #CBD5E0; cursor: pointer; font-size: 1.1rem; transition: color 0.2s; padding: 0.25rem; }
+    .remove-item-btn:hover { color: var(--color-primary); }
+    .cart-footer { padding: 1.25rem 1.5rem; border-top: 2px solid #f5f5f5; flex-shrink: 0; }
+    .cart-total { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; font-size: 1.1rem; }
+    .cart-total-amount { font-size: 1.4rem; font-weight: 900; color: var(--color-primary); }
+    .whatsapp-btn {
+      width: 100%; background: #25D366; color: white;
+      border: none; border-radius: 50px; padding: 0.9rem;
+      font-family: 'Nunito', sans-serif; font-weight: 800; font-size: 1.1rem;
+      cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 0.5rem;
+      transition: background 0.2s, transform 0.2s;
+      box-shadow: 0 4px 15px rgba(37, 211, 102, 0.4);
+    }
+    .whatsapp-btn:hover { background: #1DA851; transform: translateY(-2px); }
+
+    /* FOOTER */
+    .site-footer { background: var(--text-primary); color: white; text-align: center; padding: 2rem 1.5rem; margin-top: 3rem; }
+    .site-footer a { color: var(--color-secondary); text-decoration: none; }
+
+    /* ADMIN */
+    .admin-header {
+      background: var(--text-primary); color: white;
+      padding: 1rem 1.5rem;
+      display: flex; align-items: center; justify-content: space-between;
+      flex-wrap: wrap; gap: 0.75rem;
+      margin-top: 3rem;
+    }
+    .admin-header-brand { font-family: 'Pacifico', cursive; font-size: 1.2rem; }
+    .btn-logout {
+      background: transparent;
+      border: 2px solid rgba(255,255,255,0.5); color: white;
+      border-radius: 50px; padding: 0.4rem 1rem;
+      font-family: 'Nunito', sans-serif; font-weight: 700; cursor: pointer; transition: background 0.2s;
+    }
+    .btn-logout:hover { background: rgba(255,255,255,0.1); }
+    .admin-content { max-width: 1100px; margin: 0 auto; padding: 1.5rem; }
+    .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 1rem; margin-bottom: 1.5rem; }
+    .stat-card { background: white; border-radius: var(--border-radius); padding: 1.25rem; text-align: center; box-shadow: 0 2px 10px rgba(0,0,0,0.06); border-left: 4px solid var(--color-primary); }
+    .stat-value { font-size: 2rem; font-weight: 900; color: var(--color-primary); }
+    .stat-label { font-size: 0.8rem; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.05em; }
+
+    .table-container { background: white; border-radius: var(--border-radius); box-shadow: 0 2px 10px rgba(0,0,0,0.06); overflow: hidden; }
+    .table-header { padding: 1.25rem 1.5rem; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid #f0f0f0; }
+    .admin-table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
+    .admin-table th { background: #F7FAFC; text-align: left; padding: 0.75rem 1rem; font-weight: 700; color: var(--text-secondary); text-transform: uppercase; font-size: 0.75rem; letter-spacing: 0.05em; border-bottom: 1px solid #E2E8F0; }
+    .admin-table td { padding: 0.85rem 1rem; border-bottom: 1px solid #f7f7f7; vertical-align: middle; }
+    .admin-table tr:last-child td { border-bottom: none; }
+    .admin-table tr:hover td { background: #FAFAFA; }
+    .table-img { width: 48px; height: 48px; border-radius: 8px; background: #f0f0f0; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; }
+
+    .category-badge { display: inline-block; padding: 0.2rem 0.6rem; border-radius: 50px; font-size: 0.75rem; font-weight: 700; }
+    .cat-frutal  { background: #FFF0F0; color: #E53E3E; }
+    .cat-cremoso { background: #F0FFF4; color: #276749; }
+    .cat-picante { background: #FFFAF0; color: #C05621; }
+    .cat-especial{ background: #FAF5FF; color: #6B46C1; }
+    .cat-clasico { background: #EBF4FF; color: #2B6CB0; }
+
+    .toggle-available { position: relative; display: inline-block; width: 44px; height: 24px; }
+    .toggle-available input { opacity: 0; width: 0; height: 0; }
+    .toggle-slider { position: absolute; cursor: pointer; inset: 0; background: #CBD5E0; border-radius: 24px; transition: 0.3s; }
+    .toggle-slider:before { content: ''; position: absolute; height: 18px; width: 18px; left: 3px; bottom: 3px; background: white; border-radius: 50%; transition: 0.3s; }
+    .toggle-available input:checked + .toggle-slider { background: #68D391; }
+    .toggle-available input:checked + .toggle-slider:before { transform: translateX(20px); }
+
+    .action-btn { background: none; border: none; cursor: pointer; padding: 0.4rem; border-radius: 6px; transition: background 0.2s; font-size: 1rem; }
+    .action-btn:hover { background: #f0f0f0; }
+
+    .btn-add-flavor {
+      background: var(--color-primary); color: white; border: none;
+      border-radius: var(--border-radius-sm); padding: 0.65rem 1.25rem;
+      font-family: 'Nunito', sans-serif; font-weight: 700; cursor: pointer;
+      display: flex; align-items: center; gap: 0.4rem; transition: background 0.2s;
+    }
+    .btn-add-flavor:hover { background: var(--color-primary-dark); }
+
+    /* MODAL */
+    .modal-overlay {
+      position: fixed; inset: 0; background: rgba(0,0,0,0.6);
+      z-index: 300; display: flex; align-items: center; justify-content: center;
+      padding: 1rem; opacity: 0; pointer-events: none; transition: opacity 0.3s;
+    }
+    .modal-overlay.open { opacity: 1; pointer-events: all; }
+    .modal {
+      background: white; border-radius: 20px; width: 100%; max-width: 520px;
+      max-height: 90vh; overflow-y: auto;
+      box-shadow: 0 25px 60px rgba(0,0,0,0.3);
+      transform: translateY(20px); transition: transform 0.3s;
+    }
+    .modal-overlay.open .modal { transform: translateY(0); }
+    .modal-header { padding: 1.5rem; border-bottom: 1px solid #f0f0f0; display: flex; align-items: center; justify-content: space-between; }
+    .modal-title { font-family: 'Pacifico', cursive; color: var(--color-primary); font-size: 1.3rem; }
+    .modal-body { padding: 1.5rem; }
+    .modal-footer { padding: 1.25rem 1.5rem; border-top: 1px solid #f0f0f0; display: flex; gap: 0.75rem; justify-content: flex-end; }
+
+    .form-group { margin-bottom: 1.25rem; }
+    .form-label { display: block; font-weight: 700; font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 0.4rem; text-transform: uppercase; letter-spacing: 0.05em; }
+    .form-input { width: 100%; padding: 0.75rem 1rem; border: 2px solid #E2E8F0; border-radius: var(--border-radius-sm); font-family: 'Nunito', sans-serif; font-size: 1rem; transition: border-color 0.2s; outline: none; }
+    .form-input:focus { border-color: var(--color-primary); }
+
+    .btn-primary { background: var(--color-primary); color: white; border: none; border-radius: var(--border-radius-sm); padding: 0.7rem 1.25rem; font-family: 'Nunito', sans-serif; font-weight: 800; font-size: 1rem; cursor: pointer; transition: background 0.2s; }
+    .btn-primary:hover { background: var(--color-primary-dark); }
+    .btn-secondary { background: #EDF2F7; color: var(--text-primary); border: none; border-radius: var(--border-radius-sm); padding: 0.7rem 1.25rem; font-family: 'Nunito', sans-serif; font-weight: 700; cursor: pointer; transition: background 0.2s; }
+    .btn-secondary:hover { background: #E2E8F0; }
+
+    .img-upload-area { border: 2px dashed #CBD5E0; border-radius: var(--border-radius-sm); padding: 1.5rem; text-align: center; cursor: pointer; transition: border-color 0.2s, background 0.2s; }
+    .img-upload-area:hover { border-color: var(--color-primary); background: #FFF5F5; }
+
+    /* LOGIN CARD */
+    .admin-login-container {
+      background: linear-gradient(135deg, var(--color-primary) 0%, #845EC2 100%);
+      display: flex; align-items: center; justify-content: center;
+      padding: 2rem; margin-top: 3rem;
+    }
+    .login-card { background: white; border-radius: 20px; padding: 2.5rem; width: 100%; max-width: 400px; box-shadow: 0 20px 60px rgba(0,0,0,0.2); text-align: center; }
+    .login-logo { font-size: 3rem; margin-bottom: 0.5rem; }
+    .login-title { font-family: 'Pacifico', cursive; color: var(--color-primary); font-size: 1.5rem; margin-bottom: 0.25rem; }
+    .login-subtitle { color: var(--text-secondary); font-size: 0.9rem; margin-bottom: 2rem; }
+
+    /* SECTION SEPARATORS for mockup */
+    .mockup-section-label {
+      background: #2D3748;
+      color: #FFD93D;
+      font-family: 'Nunito', sans-serif;
+      font-weight: 800;
+      font-size: 0.85rem;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      padding: 0.5rem 1.5rem;
+    }
+
+    /* TOAST */
+    @keyframes toast-in {
+      from { transform: translateY(100%); opacity: 0; }
+      to   { transform: translateY(0); opacity: 1; }
+    }
+    .success-toast {
+      position: fixed; bottom: 1.5rem; right: 1.5rem;
+      background: #276749; color: white;
+      padding: 0.85rem 1.25rem; border-radius: var(--border-radius-sm);
+      font-weight: 700; z-index: 400;
+      animation: toast-in 0.3s ease;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+      display: none;
+    }
+    .success-toast.show { display: block; }
+
+    @media (max-width: 640px) {
+      .flavors-grid { grid-template-columns: repeat(2, 1fr); gap: 0.75rem; }
+      .flavor-card-img { height: 130px; }
+    }
+    @media (max-width: 400px) {
+      .flavors-grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ============================================================
+     SECCION 1: TIENDA PUBLICA
+     ============================================================ -->
+<div class="mockup-section-label">COMPONENTE: Navbar / Header</div>
+
+<!-- NAVBAR -->
+<nav class="navbar">
+  <a href="#" class="navbar-brand">Bolis Gourmet</a>
+  <button class="cart-btn" onclick="toggleCart()">
+    <span>🛒 Carrito</span>
+    <span class="cart-badge" id="cart-badge">3</span>
+  </button>
+</nav>
+
+<!-- ============================================================ -->
+<div class="mockup-section-label">COMPONENTE: Hero Section</div>
+
+<!-- HERO -->
+<section class="hero">
+  <h1 class="hero-title">Bolis Artesanales Gourmet</h1>
+  <p class="hero-subtitle">Los sabores mas frescos y deliciosos del verano 🌞</p>
+  <button class="hero-btn" onclick="document.getElementById('catalogo').scrollIntoView({behavior:'smooth'})">
+    Ver Sabores
+  </button>
+</section>
+
+<!-- ============================================================ -->
+<div class="mockup-section-label">COMPONENTE: Flavor Cards Grid (4 sabores)</div>
+
+<!-- CATALOGO -->
+<section class="catalog-section" id="catalogo">
+  <h2 class="section-title">Nuestros Sabores</h2>
+  <p class="section-subtitle">Elaborados con ingredientes naturales, cada boli es una explosion de sabor</p>
+
+  <div class="flavors-grid">
+
+    <!-- Card 1: Disponible -->
+    <div class="flavor-card">
+      <div class="flavor-card-img">🍓</div>
+      <div class="flavor-card-body">
+        <h3 class="flavor-name">Fresa con Crema</h3>
+        <p class="flavor-desc">Boli de fresa natural con toque de crema suave y azucar de cana. Refrescante y delicioso.</p>
+        <div class="flavor-footer">
+          <span class="flavor-price">$15.00</span>
+          <span class="flavor-stock-badge badge-available">Disponible</span>
+        </div>
+        <button class="add-to-cart-btn" onclick="addToCart(this)">+ Agregar al carrito</button>
+      </div>
+    </div>
+
+    <!-- Card 2: Poco stock -->
+    <div class="flavor-card">
+      <div class="flavor-card-img">🥭</div>
+      <div class="flavor-card-body">
+        <h3 class="flavor-name">Mango Chamoyada</h3>
+        <p class="flavor-desc">Mango natural cubierto de chamoy, chile en polvo y tamarindo. Sabor unico e irresistible.</p>
+        <div class="flavor-footer">
+          <span class="flavor-price">$18.00</span>
+          <span class="flavor-stock-badge badge-low">Poco stock</span>
+        </div>
+        <button class="add-to-cart-btn" onclick="addToCart(this)">+ Agregar al carrito</button>
+      </div>
+    </div>
+
+    <!-- Card 3: Agotado -->
+    <div class="flavor-card">
+      <div class="flavor-card-img">🍋</div>
+      <div class="flavor-card-body">
+        <h3 class="flavor-name">Limon con Chile</h3>
+        <p class="flavor-desc">Boli de limon natural con un toque picante de chile piquin. Clasico de temporada.</p>
+        <div class="flavor-footer">
+          <span class="flavor-price">$12.00</span>
+          <span class="flavor-stock-badge badge-out">Agotado</span>
+        </div>
+        <button class="add-to-cart-btn" disabled>Sin stock</button>
+      </div>
+    </div>
+
+    <!-- Card 4: Disponible (especial) -->
+    <div class="flavor-card">
+      <div class="flavor-card-img">🍇</div>
+      <div class="flavor-card-body">
+        <h3 class="flavor-name">Uva Cremosa</h3>
+        <p class="flavor-desc">Boli especial de uva morada con relleno cremoso de queso crema y miel de agave.</p>
+        <div class="flavor-footer">
+          <span class="flavor-price">$20.00</span>
+          <span class="flavor-stock-badge badge-available">Disponible</span>
+        </div>
+        <button class="add-to-cart-btn" onclick="addToCart(this)">+ Agregar al carrito</button>
+      </div>
+    </div>
+
+  </div><!-- /flavors-grid -->
+
+  <!-- ============================================================ -->
+  <div style="margin-top: 2rem;">
+    <div class="mockup-section-label">COMPONENTE: Skeleton Loading Card</div>
+    <div class="flavors-grid" style="margin-top: 1rem; max-width: 260px;">
+      <div class="skeleton-card">
+        <div class="skeleton-img"></div>
+        <div class="skeleton-line" style="width: 65%"></div>
+        <div class="skeleton-line" style="width: 85%"></div>
+        <div class="skeleton-line" style="width: 50%; margin-bottom: 16px"></div>
+      </div>
+    </div>
+  </div>
+
+</section>
+
+<!-- FOOTER -->
+<footer class="site-footer">
+  <p style="font-family:'Pacifico',cursive; font-size:1.3rem; margin-bottom:0.5rem;">Bolis Gourmet</p>
+  <p style="color:rgba(255,255,255,0.7); font-size:0.9rem;">Hecho con amor y fruta fresca 🧡</p>
+  <p style="margin-top:0.5rem; font-size:0.85rem;">Contacto: <a href="#">WhatsApp</a></p>
+</footer>
+
+<!-- ============================================================
+     CARRITO DRAWER (estado abierto para el mockup)
+     ============================================================ -->
+<div class="mockup-section-label" style="position:relative; z-index:202;">COMPONENTE: Carrito Drawer (estado abierto)</div>
+
+<div class="cart-overlay open" id="cart-overlay" onclick="toggleCart()"></div>
+
+<div class="cart-drawer open" id="cart-drawer">
+  <div class="cart-drawer-header">
+    <span class="cart-drawer-title">Tu Carrito</span>
+    <button class="cart-close-btn" onclick="toggleCart()">&#x2715;</button>
+  </div>
+
+  <div class="cart-items-list">
+
+    <!-- Item 1 -->
+    <div class="cart-item">
+      <span class="cart-item-name">Fresa con Crema</span>
+      <div class="qty-controls">
+        <button class="qty-btn">&#8722;</button>
+        <span class="qty-value">2</span>
+        <button class="qty-btn">&#43;</button>
+      </div>
+      <span class="cart-item-price">$30.00</span>
+      <button class="remove-item-btn">&#x2715;</button>
+    </div>
+
+    <!-- Item 2 -->
+    <div class="cart-item">
+      <span class="cart-item-name">Mango Chamoyada</span>
+      <div class="qty-controls">
+        <button class="qty-btn">&#8722;</button>
+        <span class="qty-value">1</span>
+        <button class="qty-btn">&#43;</button>
+      </div>
+      <span class="cart-item-price">$18.00</span>
+      <button class="remove-item-btn">&#x2715;</button>
+    </div>
+
+    <!-- Item 3 -->
+    <div class="cart-item">
+      <span class="cart-item-name">Uva Cremosa</span>
+      <div class="qty-controls">
+        <button class="qty-btn">&#8722;</button>
+        <span class="qty-value">1</span>
+        <button class="qty-btn">&#43;</button>
+      </div>
+      <span class="cart-item-price">$20.00</span>
+      <button class="remove-item-btn">&#x2715;</button>
+    </div>
+
+  </div><!-- /cart-items-list -->
+
+  <div class="cart-footer">
+    <div class="cart-total">
+      <span style="font-weight:700;">Total:</span>
+      <span class="cart-total-amount">$68.00</span>
+    </div>
+    <button class="whatsapp-btn">
+      <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" viewBox="0 0 16 16">
+        <path d="M13.601 2.326A7.854 7.854 0 0 0 7.994 0C3.627 0 .068 3.558.064 7.926c0 1.399.366 2.76 1.057 3.965L0 16l4.204-1.102a7.933 7.933 0 0 0 3.79.965h.004c4.368 0 7.926-3.558 7.93-7.93A7.898 7.898 0 0 0 13.6 2.326zM7.994 14.521a6.573 6.573 0 0 1-3.356-.92l-.24-.144-2.494.654.666-2.433-.156-.251a6.56 6.56 0 0 1-1.007-3.505c0-3.626 2.957-6.584 6.591-6.584a6.56 6.56 0 0 1 4.66 1.931 6.557 6.557 0 0 1 1.928 4.66c-.004 3.639-2.961 6.592-6.592 6.592zm3.615-4.934c-.197-.099-1.17-.578-1.353-.646-.182-.065-.315-.099-.445.099-.133.197-.513.646-.627.775-.114.133-.232.148-.43.05-.197-.1-.836-.308-1.592-.985-.59-.525-.985-1.175-1.103-1.372-.114-.198-.011-.304.088-.403.087-.088.197-.232.296-.346.1-.114.133-.198.198-.33.065-.134.034-.248-.015-.347-.05-.099-.445-1.076-.612-1.47-.16-.389-.323-.335-.445-.34-.114-.007-.247-.007-.38-.007a.729.729 0 0 0-.529.247c-.182.198-.691.677-.691 1.654 0 .977.71 1.916.81 2.049.098.133 1.394 2.132 3.383 2.992.47.205.84.326 1.129.418.475.152.904.129 1.246.08.38-.058 1.171-.48 1.338-.943.164-.464.164-.86.114-.943-.049-.084-.182-.133-.38-.232z"/>
+      </svg>
+      Hacer Pedido por WhatsApp
+    </button>
+  </div>
+</div>
+
+<!-- ============================================================
+     SECCION 2: ADMIN PANEL
+     ============================================================ -->
+
+<!-- LOGIN CARD -->
+<div class="admin-login-container">
+  <div class="login-card">
+    <div class="login-logo">🧊</div>
+    <h2 class="login-title">Panel Admin</h2>
+    <p class="login-subtitle">Acceso exclusivo para administradores</p>
+
+    <div class="form-group">
+      <label class="form-label">Correo electronico</label>
+      <input type="email" class="form-input" placeholder="admin@bolisgourmet.com" />
+    </div>
+    <div class="form-group">
+      <label class="form-label">Contrasena</label>
+      <input type="password" class="form-input" placeholder="••••••••" />
+    </div>
+    <button class="btn-primary" style="margin-top: 0.5rem;">Iniciar sesion</button>
+  </div>
+</div>
+
+<!-- ADMIN DASHBOARD -->
+<div class="mockup-section-label">COMPONENTE: Admin Dashboard</div>
+
+<header class="admin-header">
+  <div>
+    <span class="admin-header-brand">🧊 Bolis Gourmet</span>
+    <span style="font-size:0.8rem; opacity:0.6; margin-left:0.75rem;">Panel de Administracion</span>
+  </div>
+  <button class="btn-logout">Cerrar sesion</button>
+</header>
+
+<div class="admin-content">
+
+  <!-- Stats -->
+  <div class="stats-grid">
+    <div class="stat-card">
+      <div class="stat-value">12</div>
+      <div class="stat-label">Sabores totales</div>
+    </div>
+    <div class="stat-card" style="border-left-color: var(--color-accent);">
+      <div class="stat-value" style="color: var(--color-accent);">9</div>
+      <div class="stat-label">Disponibles</div>
+    </div>
+    <div class="stat-card" style="border-left-color: #FFD93D;">
+      <div class="stat-value" style="color: #856404;">2</div>
+      <div class="stat-label">Poco stock</div>
+    </div>
+    <div class="stat-card" style="border-left-color: #FC8181;">
+      <div class="stat-value" style="color: #721C24;">1</div>
+      <div class="stat-label">Agotados</div>
+    </div>
+  </div>
+
+  <!-- Tabla de inventario -->
+  <div class="table-container">
+    <div class="table-header">
+      <h3 style="font-family:'Pacifico',cursive; color:var(--text-primary); font-size:1.1rem; margin:0;">Inventario de Sabores</h3>
+      <button class="btn-add-flavor" onclick="openModal()">
+        <span>+</span> Agregar sabor
+      </button>
+    </div>
+
+    <div style="overflow-x:auto;">
+      <table class="admin-table">
+        <thead>
+          <tr>
+            <th>Imagen</th>
+            <th>Nombre</th>
+            <th>Categoria</th>
+            <th>Precio</th>
+            <th>Stock</th>
+            <th>Disponible</th>
+            <th>Acciones</th>
+          </tr>
+        </thead>
+        <tbody>
+          <!-- Fila 1 -->
+          <tr>
+            <td>
+              <div class="table-img">🍓</div>
+            </td>
+            <td>
+              <div style="font-weight:700;">Fresa con Crema</div>
+              <div style="font-size:0.78rem; color:var(--text-secondary);">Boli de fresa natural con crema suave...</div>
+            </td>
+            <td><span class="category-badge cat-frutal">Frutal</span></td>
+            <td style="font-weight:800; color:var(--color-primary);">$15.00</td>
+            <td>
+              <input type="number" value="24" min="0" style="width:60px; border:2px solid #E2E8F0; border-radius:6px; padding:0.25rem 0.4rem; font-family:'Nunito',sans-serif; font-weight:700; text-align:center; outline:none;" />
+            </td>
+            <td>
+              <label class="toggle-available">
+                <input type="checkbox" checked />
+                <span class="toggle-slider"></span>
+              </label>
+            </td>
+            <td>
+              <button class="action-btn" title="Editar">&#9998;</button>
+              <button class="action-btn" title="Eliminar" style="color:#FC8181;">&#128465;</button>
+            </td>
+          </tr>
+          <!-- Fila 2 -->
+          <tr>
+            <td>
+              <div class="table-img">🥭</div>
+            </td>
+            <td>
+              <div style="font-weight:700;">Mango Chamoyada</div>
+              <div style="font-size:0.78rem; color:var(--text-secondary);">Mango natural con chamoy y chile...</div>
+            </td>
+            <td><span class="category-badge cat-picante">Picante</span></td>
+            <td style="font-weight:800; color:var(--color-primary);">$18.00</td>
+            <td>
+              <input type="number" value="3" min="0" style="width:60px; border:2px solid #FFF3CD; border-radius:6px; padding:0.25rem 0.4rem; font-family:'Nunito',sans-serif; font-weight:700; text-align:center; outline:none; color:#856404;" />
+            </td>
+            <td>
+              <label class="toggle-available">
+                <input type="checkbox" checked />
+                <span class="toggle-slider"></span>
+              </label>
+            </td>
+            <td>
+              <button class="action-btn" title="Editar">&#9998;</button>
+              <button class="action-btn" title="Eliminar" style="color:#FC8181;">&#128465;</button>
+            </td>
+          </tr>
+          <!-- Fila 3 -->
+          <tr>
+            <td>
+              <div class="table-img">🍋</div>
+            </td>
+            <td>
+              <div style="font-weight:700;">Limon con Chile</div>
+              <div style="font-size:0.78rem; color:var(--text-secondary);">Limon natural con chile piquin...</div>
+            </td>
+            <td><span class="category-badge cat-clasico">Clasico</span></td>
+            <td style="font-weight:800; color:var(--color-primary);">$12.00</td>
+            <td>
+              <input type="number" value="0" min="0" style="width:60px; border:2px solid #F8D7DA; border-radius:6px; padding:0.25rem 0.4rem; font-family:'Nunito',sans-serif; font-weight:700; text-align:center; outline:none; color:#721C24;" />
+            </td>
+            <td>
+              <label class="toggle-available">
+                <input type="checkbox" />
+                <span class="toggle-slider"></span>
+              </label>
+            </td>
+            <td>
+              <button class="action-btn" title="Editar">&#9998;</button>
+              <button class="action-btn" title="Eliminar" style="color:#FC8181;">&#128465;</button>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div><!-- /table-container -->
+
+</div><!-- /admin-content -->
+
+<!-- ============================================================
+     MODAL: Agregar Sabor
+     ============================================================ -->
+<div class="mockup-section-label">COMPONENTE: Modal Agregar Sabor</div>
+
+<div class="modal-overlay open" id="modal-overlay" onclick="handleModalClick(event)">
+  <div class="modal" onclick="event.stopPropagation()">
+    <div class="modal-header">
+      <span class="modal-title">Agregar Nuevo Sabor</span>
+      <button style="background:none;border:none;cursor:pointer;font-size:1.3rem;color:var(--text-secondary);" onclick="closeModal()">&#x2715;</button>
+    </div>
+    <div class="modal-body">
+
+      <div class="form-group">
+        <label class="form-label">Nombre del sabor *</label>
+        <input type="text" class="form-input" placeholder="Ej: Fresa con Crema" />
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Descripcion</label>
+        <textarea class="form-input" rows="2" placeholder="Describe el sabor del boli..."></textarea>
+      </div>
+
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:1rem;">
+        <div class="form-group">
+          <label class="form-label">Precio *</label>
+          <input type="number" class="form-input" placeholder="15.00" min="0" step="0.50" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">Stock inicial *</label>
+          <input type="number" class="form-input" placeholder="20" min="0" />
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Categoria</label>
+        <select class="form-input">
+          <option value="clasico">Clasico</option>
+          <option value="frutal">Frutal</option>
+          <option value="cremoso">Cremoso</option>
+          <option value="picante">Picante</option>
+          <option value="especial">Especial</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Imagen del producto</label>
+        <div class="img-upload-area">
+          <div style="font-size:2rem; margin-bottom:0.5rem;">📷</div>
+          <p style="margin:0; font-weight:700; color:var(--text-secondary);">Haz clic o arrastra una imagen aqui</p>
+          <p style="margin:0.25rem 0 0; font-size:0.8rem; color:#A0AEC0;">JPG, PNG o WebP — maximo 2 MB</p>
+        </div>
+      </div>
+
+      <div class="form-group" style="display:flex; align-items:center; gap:0.75rem;">
+        <label class="toggle-available">
+          <input type="checkbox" checked />
+          <span class="toggle-slider"></span>
+        </label>
+        <span style="font-weight:700; font-size:0.9rem;">Disponible en la tienda</span>
+      </div>
+
+    </div><!-- /modal-body -->
+
+    <div class="modal-footer">
+      <button class="btn-secondary" onclick="closeModal()">Cancelar</button>
+      <button class="btn-primary">Guardar sabor</button>
+    </div>
+  </div><!-- /modal -->
+</div><!-- /modal-overlay -->
+
+<!-- TOAST DEMO -->
+<div class="success-toast show" id="toast">Sabor guardado exitosamente</div>
+
+<!-- FOOTER REAL -->
+<footer class="site-footer" style="margin-top:4rem;">
+  <p style="font-family:'Pacifico',cursive; font-size:1.3rem; margin-bottom:0.5rem;">Bolis Gourmet</p>
+  <p style="color:rgba(255,255,255,0.7); font-size:0.85rem;">
+    Mockup UI/UX — Sistema de diseno v1.0<br />
+    Desarrollado para demostracion de componentes visuales
+  </p>
+</footer>
+
+<script>
+  // Toggle cart drawer
+  function toggleCart() {
+    const overlay = document.getElementById('cart-overlay');
+    const drawer  = document.getElementById('cart-drawer');
+    overlay.classList.toggle('open');
+    drawer.classList.toggle('open');
+  }
+
+  // Add to cart demo
+  function addToCart(btn) {
+    const badge = document.getElementById('cart-badge');
+    badge.textContent = parseInt(badge.textContent) + 1;
+    btn.textContent = 'Agregado!';
+    btn.style.background = '#6BCB77';
+    setTimeout(() => {
+      btn.textContent = '+ Agregar al carrito';
+      btn.style.background = '';
+    }, 1500);
+  }
+
+  // Modal open/close
+  function openModal() {
+    document.getElementById('modal-overlay').classList.add('open');
+  }
+  function closeModal() {
+    document.getElementById('modal-overlay').classList.remove('open');
+  }
+  function handleModalClick(e) {
+    if (e.target === document.getElementById('modal-overlay')) closeModal();
+  }
+
+  // Auto-hide toast after 3s
+  setTimeout(() => {
+    const toast = document.getElementById('toast');
+    if (toast) toast.classList.remove('show');
+  }, 3000);
+</script>
+
+</body>
+</html>

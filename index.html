@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Bolis Gourmet - Los mejores bolis artesanales de la ciudad. Sabores únicos hechos con ingredientes frescos.">
+  <meta property="og:title" content="Bolis Gourmet">
+  <meta property="og:description" content="Los mejores bolis artesanales - sabores únicos y deliciosos">
+  <title>Bolis Gourmet - Los mejores bolis artesanales</title>
+
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&family=Pacifico&display=swap" rel="stylesheet">
+
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            nunito: ['Nunito', 'sans-serif'],
+            pacifico: ['Pacifico', 'cursive'],
+          },
+          colors: {
+            coral: { DEFAULT: '#FF6B6B', dark: '#EE5A5A' },
+            mango: '#FFD93D',
+            lima: '#6BCB77',
+          }
+        }
+      }
+    }
+  </script>
+
+  <!-- Estilos personalizados -->
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+  <!-- ==============================
+       NAVBAR
+  ============================== -->
+  <nav class="navbar">
+    <a href="index.html" class="navbar-brand">🧊 Bolis Gourmet</a>
+
+    <div style="display:flex;align-items:center;gap:1rem">
+      <a href="#catalogo" style="color:rgba(255,255,255,0.9);text-decoration:none;font-weight:700;font-size:0.95rem;display:none" id="nav-link-sabores">Ver Sabores</a>
+      <button class="cart-btn" onclick="openCart()" aria-label="Abrir carrito">
+        🛒 Carrito
+        <span id="cart-badge" class="cart-badge" style="display:none">0</span>
+      </button>
+    </div>
+  </nav>
+
+  <!-- ==============================
+       HERO
+  ============================== -->
+  <section class="hero">
+    <h1 class="hero-title">Los mejores bolis artesanales</h1>
+    <p class="hero-subtitle">Sabores únicos hechos con ingredientes frescos y mucho amor 🧡</p>
+    <button class="hero-btn" onclick="document.getElementById('catalogo').scrollIntoView({behavior:'smooth'})">
+      Ver sabores 🧊
+    </button>
+  </section>
+
+  <!-- ==============================
+       CATALOGO
+  ============================== -->
+  <section id="catalogo" class="catalog-section">
+    <h2 class="section-title">Nuestros Sabores</h2>
+    <p class="section-subtitle">Elige tus favoritos y haz tu pedido fácil por WhatsApp 📱</p>
+
+    <div id="flavors-grid" class="flavors-grid">
+      <!-- Las cards se generan dinámicamente desde catalog.js -->
+    </div>
+  </section>
+
+  <!-- ==============================
+       CART OVERLAY
+  ============================== -->
+  <div id="cart-overlay" class="cart-overlay" onclick="closeCart()"></div>
+
+  <!-- ==============================
+       CART DRAWER
+  ============================== -->
+  <aside id="cart-drawer" class="cart-drawer" role="dialog" aria-label="Carrito de compras">
+    <div class="cart-drawer-header">
+      <span class="cart-drawer-title">Mi Carrito 🛒</span>
+      <button class="cart-close-btn" onclick="closeCart()" aria-label="Cerrar carrito">✕</button>
+    </div>
+
+    <div id="cart-items-list" class="cart-items-list">
+      <!-- Items del carrito se renderizan desde cart.js -->
+    </div>
+
+    <div class="cart-footer">
+      <div class="cart-total">
+        <span style="font-weight:700">Total:</span>
+        <span id="cart-total-amount" class="cart-total-amount">$0.00</span>
+      </div>
+      <button
+        id="whatsapp-order-btn"
+        class="whatsapp-btn"
+        onclick="sendWhatsAppOrder()"
+        disabled
+        aria-label="Hacer pedido por WhatsApp"
+      >
+        📱 Hacer Pedido por WhatsApp
+      </button>
+    </div>
+  </aside>
+
+  <!-- ==============================
+       FOOTER
+  ============================== -->
+  <footer class="site-footer">
+    <p style="font-family:'Pacifico',cursive;font-size:1.4rem;margin:0 0 0.5rem">🧊 Bolis Gourmet</p>
+    <p style="margin:0 0 0.5rem;opacity:0.8">Hecho con ❤️ para tu antojo</p>
+    <p style="margin:0 0 1rem">
+      <a href="#" id="footer-whatsapp-link">📱 Escríbenos por WhatsApp</a>
+    </p>
+    <p style="font-size:0.75rem;opacity:0.5">
+      <a href="admin.html" style="color:rgba(255,255,255,0.4);text-decoration:none">Admin</a>
+    </p>
+  </footer>
+
+  <!-- ==============================
+       SCRIPTS (orden importante)
+  ============================== -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="js/config.js"></script>
+  <script src="js/supabase-client.js"></script>
+  <script src="js/cart.js"></script>
+  <script src="js/catalog.js"></script>
+  <script src="js/whatsapp.js"></script>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', function () {
+      // Cargar catálogo desde Supabase
+      loadFlavors();
+
+      // Inicializar badge y carrito desde localStorage
+      updateCartBadge();
+      renderCart();
+
+      // Actualizar link de WhatsApp en el footer
+      var footerLink = document.getElementById('footer-whatsapp-link');
+      if (footerLink && typeof WHATSAPP_NUMBER !== 'undefined' && WHATSAPP_NUMBER !== '5219XXXXXXXXXX') {
+        footerLink.href = 'https://wa.me/' + WHATSAPP_NUMBER;
+        footerLink.target = '_blank';
+      }
+
+      // Mostrar link de nav en desktop
+      if (window.innerWidth > 640) {
+        var navLink = document.getElementById('nav-link-sabores');
+        if (navLink) navLink.style.display = 'block';
+      }
+
+      // Cerrar carrito con tecla Escape
+      document.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape') closeCart();
+      });
+    });
+  </script>
+
+</body>
+</html>

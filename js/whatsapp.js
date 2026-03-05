@@ -1,0 +1,148 @@
+// ================================================
+// PEDIDO POR WHATSAPP - Bolis Gourmet
+// ================================================
+// Guarda la orden en Supabase (via Edge Function) y abre WhatsApp
+// con el número de pedido incluido en el mensaje.
+
+function formatWhatsAppMessage(orderNumber) {
+  var cart = getCart();
+  if (cart.length === 0) return '';
+
+  var sym = typeof CURRENCY_SYMBOL !== 'undefined' ? CURRENCY_SYMBOL : '$';
+  var bizName = typeof BUSINESS_NAME !== 'undefined' ? BUSINESS_NAME : 'Bolis Gourmet';
+
+  var lines = [
+    '¡Hola! Me gustaría hacer el siguiente pedido de *' + bizName + '*:',
+    '',
+    '🧊 *Mi Pedido:*'
+  ];
+
+  for (var i = 0; i < cart.length; i++) {
+    var item = cart[i];
+    lines.push('• ' + item.name + ' x' + item.quantity + ' — ' + sym + (item.price * item.quantity).toFixed(2));
+  }
+
+  lines.push('');
+  lines.push('💰 *Total: ' + sym + getTotal().toFixed(2) + '*');
+
+  if (orderNumber) {
+    lines.push('');
+    lines.push('📋 *Número de pedido: ' + orderNumber + '*');
+  }
+
+  lines.push('');
+  lines.push('Por favor confirmar disponibilidad y envío. ¡Muchas gracias! 😊');
+
+  return lines.join('\n');
+}
+
+// Guarda la orden en Supabase y abre WhatsApp
+async function sendWhatsAppOrder() {
+  var cart = getCart();
+  if (cart.length === 0) {
+    alert('Tu carrito está vacío. Agrega algunos bolis primero.');
+    return;
+  }
+
+  var number = typeof WHATSAPP_NUMBER !== 'undefined' ? WHATSAPP_NUMBER : '';
+  if (!number || number === '5219XXXXXXXXXX') {
+    alert('El número de WhatsApp no está configurado.\nContacta al administrador.');
+    return;
+  }
+
+  var btn = document.getElementById('whatsapp-order-btn');
+  if (btn) {
+    btn.disabled = true;
+    btn.textContent = '⏳ Generando pedido...';
+  }
+
+  var orderNumber = null;
+
+  // Intentar guardar la orden en Supabase
+  try {
+    orderNumber = await saveOrderToSupabase(cart);
+  } catch (e) {
+    console.warn('No se pudo guardar la orden en Supabase:', e.message);
+    // Continuar de todas formas — el pedido sigue yendo por WhatsApp
+  }
+
+  // Abrir WhatsApp con el mensaje (con o sin número de pedido)
+  var message = formatWhatsAppMessage(orderNumber);
+  var url = 'https://wa.me/' + number + '?text=' + encodeURIComponent(message);
+  window.open(url, '_blank');
+
+  // Si se generó número de pedido, mostrar confirmación
+  if (orderNumber) {
+    showOrderConfirmation(orderNumber);
+  }
+
+  // Restaurar botón
+  if (btn) {
+    btn.disabled = false;
+    btn.textContent = '📱 Hacer Pedido por WhatsApp';
+  }
+}
+
+// Llama a la Edge Function create-order y retorna el número de pedido
+async function saveOrderToSupabase(cart) {
+  var functionsUrl = typeof FUNCTIONS_URL !== 'undefined' ? FUNCTIONS_URL : null;
+  var anonKey = typeof SUPABASE_ANON_KEY !== 'undefined' ? SUPABASE_ANON_KEY : null;
+
+  if (!functionsUrl || !anonKey || anonKey === 'YOUR_SUPABASE_ANON_KEY_HERE') {
+    throw new Error('Supabase no configurado');
+  }
+
+  var items = cart.map(function (item) {
+    return {
+      flavor_id: item.id,
+      name: item.name,
+      price: item.price,
+      quantity: item.quantity
+    };
+  });
+
+  var response = await fetch(functionsUrl + '/create-order', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'apikey': anonKey,
+      'Authorization': 'Bearer ' + anonKey
+    },
+    body: JSON.stringify({
+      items: items,
+      total: getTotal()
+    })
+  });
+
+  if (!response.ok) {
+    var err = await response.json().catch(function () { return {}; });
+    throw new Error(err.error || 'Error ' + response.status);
+  }
+
+  var data = await response.json();
+  return data.order_number;
+}
+
+// Muestra un mensaje de confirmación con el número de pedido
+function showOrderConfirmation(orderNumber) {
+  var existing = document.getElementById('order-confirm-toast');
+  if (existing) existing.remove();
+
+  var toast = document.createElement('div');
+  toast.id = 'order-confirm-toast';
+  toast.style.cssText = [
+    'position:fixed', 'bottom:1.5rem', 'left:50%',
+    'transform:translateX(-50%)', 'background:#2D3748',
+    'color:white', 'padding:1rem 1.5rem', 'border-radius:12px',
+    'z-index:500', 'text-align:center', 'box-shadow:0 4px 20px rgba(0,0,0,0.3)',
+    'font-family:Nunito,sans-serif', 'max-width:320px', 'width:90%'
+  ].join(';');
+
+  toast.innerHTML = '<p style="font-weight:800;font-size:1.05rem;margin:0 0 0.25rem">¡Pedido registrado! 🎉</p>' +
+    '<p style="font-size:0.9rem;margin:0 0 0.5rem;opacity:0.8">Tu número de pedido es:</p>' +
+    '<p style="font-family:\'Pacifico\',cursive;font-size:1.4rem;color:#FFD93D;margin:0">' + orderNumber + '</p>' +
+    '<p style="font-size:0.8rem;margin:0.5rem 0 0;opacity:0.7">Guárdalo — la tienda lo usará para procesar tu pedido</p>';
+
+  document.body.appendChild(toast);
+  setTimeout(function () { if (toast.parentNode) toast.remove(); }, 8000);
+}
