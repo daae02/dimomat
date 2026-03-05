@@ -32,6 +32,7 @@
   --shadow-card: 0 4px 20px rgba(255, 107, 107, 0.15);
   --shadow-hover: 0 8px 30px rgba(255, 107, 107, 0.3);
   --shadow-header: 0 2px 20px rgba(0,0,0,0.1);
+  --navbar-height: 72px;
 }
 
 /* --- RESET Y BASE --- */
@@ -52,15 +53,18 @@ body {
   position: sticky;
   top: 0;
   z-index: 100;
-  padding: 0.75rem 1.5rem;
+  min-height: var(--navbar-height);
+  padding: 0.85rem 1.5rem;
   display: flex;
   align-items: center;
   justify-content: space-between;
 }
 
 .navbar-brand {
-  font-family: 'Pacifico', cursive;
-  font-size: 1.5rem;
+  font-family: 'Nunito', sans-serif;
+  font-size: 1.8rem;
+  font-weight: 900;
+  letter-spacing: 0.01em;
   color: white;
   text-decoration: none;
 }
@@ -110,7 +114,7 @@ body {
 /* --- HERO SECTION --- */
 .hero {
   background: linear-gradient(135deg, var(--color-primary) 0%, #FF8E53 50%, var(--color-secondary) 100%);
-  padding: 3rem 1.5rem;
+  padding: 3.5rem 1.5rem;
   text-align: center;
   position: relative;
   overflow: hidden;
@@ -127,7 +131,8 @@ body {
 }
 
 .hero-title {
-  font-family: 'Pacifico', cursive;
+  font-family: 'Nunito', sans-serif;
+  font-weight: 900;
   font-size: clamp(1.8rem, 5vw, 3rem);
   color: white;
   margin: 0 0 0.5rem;
@@ -167,7 +172,8 @@ body {
 }
 
 .section-title {
-  font-family: 'Pacifico', cursive;
+  font-family: 'Nunito', sans-serif;
+  font-weight: 900;
   font-size: 1.8rem;
   color: var(--color-primary);
   text-align: center;
@@ -193,13 +199,14 @@ body {
   border-radius: var(--border-radius);
   box-shadow: var(--shadow-card);
   overflow: hidden;
-  transition: transform 0.25s, box-shadow 0.25s;
+  transition: box-shadow 0.25s;
   cursor: pointer;
 }
 
-.flavor-card:hover {
-  transform: translateY(-6px);
-  box-shadow: var(--shadow-hover);
+@media (hover: hover) and (pointer: fine) {
+  .flavor-card:hover {
+    box-shadow: var(--shadow-hover);
+  }
 }
 
 .flavor-card-img {
@@ -220,7 +227,7 @@ body {
 }
 
 .flavor-card-body {
-  padding: 1rem;
+  padding: 1.15rem;
 }
 
 .flavor-name {
@@ -382,7 +389,8 @@ body {
 .cart-drawer-header {
   background: var(--color-primary);
   color: white;
-  padding: 1.2rem 1.5rem;
+  min-height: var(--navbar-height);
+  padding: 0.85rem 1.5rem;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -390,7 +398,8 @@ body {
 }
 
 .cart-drawer-title {
-  font-family: 'Pacifico', cursive;
+  font-family: 'Nunito', sans-serif;
+  font-weight: 900;
   font-size: 1.3rem;
 }
 
@@ -595,6 +604,14 @@ body {
 .whatsapp-btn:hover {
   background: #1DA851;
   transform: translateY(-2px);
+}
+
+.whatsapp-btn:disabled {
+  background: #A0AEC0;
+  color: rgba(255,255,255,0.9);
+  cursor: not-allowed;
+  box-shadow: none;
+  transform: none;
 }
 
 /* --- FOOTER --- */

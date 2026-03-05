@@ -222,8 +222,16 @@ function renderFlavorCard(flavor) {
 }
 
 function handleAddToCart(id, name, price, btn, stock) {
-  addToCart(id, name, price, stock);
+  var added = addToCart(id, name, price, stock);
   var qty = getCartQtyForId(id);
+
+  if (!added) {
+    btn.disabled = true;
+    btn.classList.remove('added');
+    btn.textContent = 'Limite alcanzado (' + qty + ')';
+    return;
+  }
+
   if (stock > 0 && qty >= stock) {
     btn.disabled = true;
     btn.classList.remove('added');

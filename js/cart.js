@@ -41,19 +41,28 @@ function saveCart(cart) {
 function addToCart(flavorId, name, price, stock) {
   var cart = getCart();
   var found = false;
+  var safeStock = Math.max(0, Number(stock) || 0);
+
   for (var i = 0; i < cart.length; i++) {
-    if (cart[i].id === flavorId) {
-      if (stock && cart[i].quantity >= stock) return; // at stock limit
-      cart[i].quantity += 1;
-      if (stock) cart[i].stock = stock;
+    if (String(cart[i].id) === String(flavorId)) {
+      var currentQty = Number(cart[i].quantity) || 0;
+      if (safeStock > 0 && currentQty >= safeStock) return false; // at stock limit
+      cart[i].quantity = currentQty + 1;
+      cart[i].stock = safeStock;
       found = true;
       break;
     }
   }
-  if (!found) cart.push({ id: flavorId, name: name, price: price, quantity: 1, stock: stock || 0 });
+
+  if (!found) {
+    if (safeStock === 0) return false;
+    cart.push({ id: flavorId, name: name, price: price, quantity: 1, stock: safeStock });
+  }
+
   saveCart(cart);
   updateCartBadge();
   renderCart();
+  return true;
 }
 
 function removeFromCart(flavorId) {
@@ -65,9 +74,11 @@ function removeFromCart(flavorId) {
 function updateQuantity(flavorId, delta) {
   var cart = getCart();
   for (var i = 0; i < cart.length; i++) {
-    if (cart[i].id === flavorId) {
-      var newQty = cart[i].quantity + delta;
-      if (delta > 0 && cart[i].stock && newQty > cart[i].stock) return; // cap at stock
+    if (String(cart[i].id) === String(flavorId)) {
+      var stock = Math.max(0, Number(cart[i].stock) || 0);
+      var currentQty = Number(cart[i].quantity) || 1;
+      var newQty = currentQty + delta;
+      if (delta > 0 && stock > 0 && newQty > stock) return; // cap at stock
       cart[i].quantity = Math.max(1, newQty);
       break;
     }
