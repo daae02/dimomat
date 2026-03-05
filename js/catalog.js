@@ -90,7 +90,19 @@ function renderCatalog(flavors) {
   }
   var search = document.getElementById('catalog-search');
   if (search) search.value = '';
+  _updateFilterChips(allFlavors);
   _renderFilteredCatalog(allFlavors);
+}
+
+function _updateFilterChips(flavors) {
+  var cats = {};
+  for (var i = 0; i < flavors.length; i++) {
+    if (flavors[i].category) cats[flavors[i].category] = true;
+  }
+  document.querySelectorAll('.filter-chip[data-cat]').forEach(function (chip) {
+    var cat = chip.getAttribute('data-cat');
+    chip.style.display = (cat === '' || cats[cat]) ? '' : 'none';
+  });
 }
 
 function _renderFilteredCatalog(flavors) {
