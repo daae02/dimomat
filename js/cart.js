@@ -138,7 +138,11 @@ function renderCart() {
   list.innerHTML = html;
 
   if (totalEl) totalEl.textContent = formatColones(getTotal());
-  if (whatsappBtn) whatsappBtn.disabled = false;
+  if (typeof updateWhatsAppOrderButtonState === 'function') {
+    updateWhatsAppOrderButtonState();
+  } else if (whatsappBtn) {
+    whatsappBtn.disabled = false;
+  }
 }
 
 function openCart() {
