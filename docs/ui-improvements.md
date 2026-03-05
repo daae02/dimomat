@@ -1,4 +1,4 @@
-# UI Improvements — Bolis Gourmet
+# UI Improvements — Bolis Dimomat
 
 ## Resumen de cambios
 

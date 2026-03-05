@@ -1,5 +1,5 @@
 // ================================================
-// CATALOGO DE SABORES - Bolis Gourmet
+// CATALOGO DE SABORES - Bolis Dimomat
 // ================================================
 // Requiere: supabase-client.js, cart.js cargados antes
 
@@ -24,6 +24,12 @@ var CATEGORY_EMOJI = {
 };
 
 var isLoadingFlavors = false;
+
+
+function formatColones(amount) {
+  var value = Number(amount || 0);
+  return value.toLocaleString('es-CR', { style: 'currency', currency: 'CRC', minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
 
 // Carga sabores desde Supabase o usa datos de muestra
 async function loadFlavors(options) {
@@ -153,8 +159,7 @@ function renderFlavorCard(flavor) {
   var isOutOfStock = flavor.stock === 0;
   var isLowStock = flavor.stock > 0 && flavor.stock <= 5;
   var emoji = CATEGORY_EMOJI[flavor.category] || '🧊';
-  var sym = typeof CURRENCY_SYMBOL !== 'undefined' ? CURRENCY_SYMBOL : '\u20A1';
-  var price = sym + parseFloat(flavor.price).toFixed(2);
+  var price = formatColones(parseFloat(flavor.price));
 
   var stockBadge = isOutOfStock
     ? '<span class="flavor-stock-badge badge-out">Agotado</span>'
