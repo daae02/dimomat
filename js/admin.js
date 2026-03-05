@@ -4,6 +4,15 @@
 // Requiere: supabase-client.js cargado antes
 
 var currentEditId = null;
+var manualOrderCatalog = [];
+
+function getCurrencySymbol() {
+  return typeof CURRENCY_SYMBOL !== 'undefined' && CURRENCY_SYMBOL ? CURRENCY_SYMBOL : '\u20A1';
+}
+
+function formatMoney(amount) {
+  return getCurrencySymbol() + Number(amount || 0).toFixed(2);
+}
 
 // ---- AUTH ----
 
@@ -147,7 +156,7 @@ function renderAdminTable(flavors) {
       '<td>' + imgHtml + '</td>' +
       '<td><strong>' + safeText(f.name) + '</strong></td>' +
       '<td><span class="category-badge cat-' + (f.category || 'clasico') + '">' + (CAT_LABELS[f.category] || f.category) + '</span></td>' +
-      '<td>$' + parseFloat(f.price).toFixed(2) + '</td>' +
+      '<td>' + formatMoney(parseFloat(f.price)) + '</td>' +
       '<td style="' + stockStyle + '">' + (f.stock || 0) + '</td>' +
       '<td><label class="toggle-available"><input type="checkbox" ' + (f.is_available ? 'checked' : '') + ' onchange="toggleAvailability(\'' + safeRowId + '\', this.checked)"><span class="toggle-slider"></span></label></td>' +
       '<td>' +
@@ -334,11 +343,13 @@ async function loadOrders() {
       var statusLabel = { pending: 'Pendiente', confirmed: 'Confirmado', processed: 'Procesado', cancelled: 'Cancelado' }[o.status] || o.status;
       var date = new Date(o.created_at).toLocaleString('es-MX', { dateStyle: 'short', timeStyle: 'short' });
       var itemCount = Array.isArray(o.items) ? o.items.reduce(function (s, it) { return s + it.quantity; }, 0) : 0;
+      var customerName = o.customer_name ? safeText(o.customer_name) : 'Sin nombre';
 
       html += '<div class="orders-list-item" onclick="openOrderEditor(\'' + o.id + '\')">' +
         '<span class="order-number-big" style="font-size:1rem">' + safeText(o.order_number) + '</span>' +
         '<div>' +
-          '<div style="font-weight:700;font-size:0.9rem">' + itemCount + ' boli(s) — $' + parseFloat(o.total).toFixed(2) + '</div>' +
+          '<div style="font-weight:700;font-size:0.9rem">' + itemCount + ' boli(s) — ' + formatMoney(parseFloat(o.total)) + '</div>' +
+          <div style="font-size:0.82rem;color:#4A5568">Cliente: ' + customerName + '</div>
           '<div style="font-size:0.8rem;color:#718096">' + date + '</div>' +
         '</div>' +
         '<span class="order-status-badge ' + statusClass + '">' + statusLabel + '</span>' +
@@ -418,6 +429,7 @@ function renderOrderEditor(order) {
   var statusClass = 'status-' + order.status;
   var isProcessed = order.status === 'processed' || order.status === 'cancelled';
   var date = new Date(order.created_at).toLocaleString('es-MX', { dateStyle: 'long', timeStyle: 'short' });
+  var customerName = order.customer_name ? safeText(order.customer_name) : 'Sin nombre';
 
   var itemsHtml = '';
   var items = Array.isArray(order.items) ? order.items : [];
@@ -427,12 +439,12 @@ function renderOrderEditor(order) {
     itemsHtml += '<div class="order-item-row" data-idx="' + i + '">' +
       '<div>' +
         '<div class="order-item-name">' + safeText(item.name) + '</div>' +
-        '<div class="order-item-price">$' + parseFloat(item.price).toFixed(2) + ' c/u</div>' +
+        '<div class="order-item-price">' + formatMoney(parseFloat(item.price)) + ' c/u</div>' +
       '</div>' +
       '<div style="font-size:0.85rem;color:#718096">Qty:</div>' +
       '<input class="order-qty-input" type="number" min="0" value="' + item.quantity + '" ' + readonlyAttr +
         ' onchange="updateOrderItemQty(\'' + order.id + '\', ' + i + ', this.value)" data-price="' + item.price + '">' +
-      '<div style="font-weight:800;color:#FF6B6B;min-width:60px;text-align:right" id="item-subtotal-' + i + '">$' + (item.price * item.quantity).toFixed(2) + '</div>' +
+      '<div style="font-weight:800;color:#FF6B6B;min-width:60px;text-align:right" id="item-subtotal-' + i + '">' + formatMoney(item.price * item.quantity) + '</div>' +
     '</div>';
   }
 
@@ -461,6 +473,7 @@ function renderOrderEditor(order) {
       '<div>' +
         '<span class="order-number-big">' + safeText(order.order_number) + '</span>' +
         '<span style="font-size:0.85rem;color:#718096;margin-left:0.75rem">' + date + '</span>' +
+        <div style="font-size:0.85rem;color:#4A5568;margin-top:0.25rem">Cliente: ' + customerName + '</div>
       '</div>' +
       '<span class="order-status-badge ' + statusClass + '">' + statusLabel + '</span>' +
     '</div>' +
@@ -470,7 +483,7 @@ function renderOrderEditor(order) {
       '<div style="display:flex;justify-content:flex-end;margin-top:1rem;padding-top:0.75rem;border-top:2px solid #f0f0f0">' +
         '<div style="text-align:right">' +
           '<div style="font-size:0.85rem;color:#718096">Total del pedido</div>' +
-          '<div style="font-size:1.4rem;font-weight:900;color:#FF6B6B" id="order-total-display-' + order.id + '">$' + parseFloat(order.total).toFixed(2) + '</div>' +
+          '<div style="font-size:1.4rem;font-weight:900;color:#FF6B6B" id="order-total-display-' + order.id + '">' + formatMoney(parseFloat(order.total)) + '</div>' +
         '</div>' +
       '</div>' +
     '</div>' +
@@ -494,12 +507,233 @@ function updateOrderItemQty(orderId, idx, newQty) {
 
     // Actualizar subtotal visual del item
     var subtotalEl = document.getElementById('item-subtotal-' + idx);
-    if (subtotalEl) subtotalEl.textContent = '$' + (items[idx].price * items[idx].quantity).toFixed(2);
+    if (subtotalEl) subtotalEl.textContent = formatMoney(items[idx].price * items[idx].quantity);
 
     // Recalcular total
     var total = items.reduce(function (s, it) { return s + it.price * it.quantity; }, 0);
     var totalEl = document.getElementById('order-total-display-' + orderId);
-    if (totalEl) totalEl.textContent = '$' + total.toFixed(2);
+    if (totalEl) totalEl.textContent = formatMoney(total);
+  }
+}
+
+async function getAdminAccessToken() {
+  var sessionResult = await supabaseClient.auth.getSession();
+  var session = sessionResult.data.session || null;
+  var nowSec = Math.floor(Date.now() / 1000);
+  if (!session || (session.expires_at && session.expires_at <= nowSec + 60)) {
+    var refreshed = await supabaseClient.auth.refreshSession();
+    session = refreshed.data.session || null;
+  }
+  var token = session ? session.access_token : null;
+  if (!token) throw new Error('Sesion expirada. Por favor vuelve a iniciar sesion.');
+  return token;
+}
+
+async function callProcessOrder(orderId, items, notes) {
+  var functionsUrl = typeof FUNCTIONS_URL !== 'undefined' ? FUNCTIONS_URL : null;
+  if (!functionsUrl) throw new Error('FUNCTIONS_URL no configurado en config.js');
+  var token = await getAdminAccessToken();
+  var anonKey = typeof SUPABASE_ANON_KEY !== 'undefined' ? SUPABASE_ANON_KEY : '';
+
+  var response = await fetch(functionsUrl + '/process-order', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      apikey: anonKey,
+      Authorization: 'Bearer ' + token
+    },
+    body: JSON.stringify({
+      order_id: orderId,
+      items: items,
+      admin_notes: notes || ''
+    })
+  });
+
+  var rawBody = await response.text();
+  var data = {};
+  try {
+    data = rawBody ? JSON.parse(rawBody) : {};
+  } catch (_) {
+    data = { raw: rawBody };
+  }
+
+  if (!response.ok) {
+    var errMsg = data.error || data.message || data.msg || data.raw || ('HTTP ' + response.status);
+    if (Array.isArray(data.details) && data.details.length > 0) {
+      errMsg += '\n' + data.details.join('\n');
+    }
+    throw new Error(errMsg);
+  }
+
+  return data;
+}
+
+function buildManualFlavorOptions() {
+  var options = '<option value="">Seleccionar sabor...</option>';
+  for (var i = 0; i < manualOrderCatalog.length; i++) {
+    var f = manualOrderCatalog[i];
+    options += '<option value="' + safeAttr(f.id) + '">' +
+      safeText(f.name) + ' (' + formatMoney(f.price) + ', stock: ' + f.stock + ')' +
+      '</option>';
+  }
+  return options;
+}
+
+function addManualOrderRow() {
+  var list = document.getElementById('manual-items-list');
+  if (!list || manualOrderCatalog.length === 0) return;
+
+  var rowId = 'manual-row-' + Date.now() + '-' + Math.floor(Math.random() * 10000);
+  var rowHtml = '<div id="' + rowId + '" class="manual-order-row" style="display:grid;grid-template-columns:1fr 110px auto;gap:0.5rem;align-items:center">' +
+    '<select class="form-input" onchange="recalcManualOrderTotal()">' + buildManualFlavorOptions() + '</select>' +
+    '<input class="form-input" type="number" min="1" step="1" value="1" oninput="recalcManualOrderTotal()">' +
+    '<button class="btn-secondary" style="padding:0.5rem 0.75rem" onclick="removeManualOrderRow(\'' + rowId + '\')">Quitar</button>' +
+  '</div>';
+  list.insertAdjacentHTML('beforeend', rowHtml);
+  recalcManualOrderTotal();
+}
+
+function removeManualOrderRow(rowId) {
+  var row = document.getElementById(rowId);
+  if (row) row.remove();
+  recalcManualOrderTotal();
+}
+
+function recalcManualOrderTotal() {
+  var total = 0;
+  var rows = document.querySelectorAll('#manual-items-list .manual-order-row');
+  rows.forEach(function (row) {
+    var sel = row.querySelector('select');
+    var qtyInput = row.querySelector('input');
+    if (!sel || !qtyInput) return;
+    var qty = Math.max(0, parseInt(qtyInput.value, 10) || 0);
+    var flavor = manualOrderCatalog.find(function (f) { return f.id === sel.value; });
+    if (flavor && qty > 0) total += Number(flavor.price) * qty;
+  });
+  var totalEl = document.getElementById('manual-order-total');
+  if (totalEl) totalEl.textContent = formatMoney(total);
+}
+
+async function openManualOrderModal() {
+  var overlay = document.getElementById('manual-order-overlay');
+  var list = document.getElementById('manual-items-list');
+  if (!overlay || !list) return;
+
+  var result = await supabaseClient
+    .from('flavors')
+    .select('id, name, price, stock, is_available')
+    .eq('is_available', true)
+    .gt('stock', 0)
+    .order('name');
+
+  if (result.error) {
+    alert('No se pudo cargar inventario: ' + result.error.message);
+    return;
+  }
+
+  manualOrderCatalog = result.data || [];
+  list.innerHTML = '';
+  document.getElementById('manual-order-notes').value = '';
+
+  if (manualOrderCatalog.length === 0) {
+    list.innerHTML = '<div style="padding:1rem;border:1px dashed #CBD5E0;border-radius:8px;color:#718096">No hay sabores con stock disponible.</div>';
+  } else {
+    addManualOrderRow();
+  }
+
+  recalcManualOrderTotal();
+  overlay.classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+
+function closeManualOrderModal() {
+  var overlay = document.getElementById('manual-order-overlay');
+  if (overlay) overlay.classList.remove('open');
+  document.body.style.overflow = '';
+}
+
+function collectManualOrderItems() {
+  var errors = [];
+  var items = [];
+  var rows = document.querySelectorAll('#manual-items-list .manual-order-row');
+  rows.forEach(function (row, idx) {
+    var sel = row.querySelector('select');
+    var qtyInput = row.querySelector('input');
+    if (!sel || !qtyInput || !sel.value) {
+      errors.push('Item ' + (idx + 1) + ': selecciona un sabor.');
+      return;
+    }
+    var qty = parseInt(qtyInput.value, 10) || 0;
+    if (qty <= 0) {
+      errors.push('Item ' + (idx + 1) + ': cantidad invalida.');
+      return;
+    }
+    var flavor = manualOrderCatalog.find(function (f) { return f.id === sel.value; });
+    if (!flavor) {
+      errors.push('Item ' + (idx + 1) + ': sabor no encontrado.');
+      return;
+    }
+    if (qty > flavor.stock) {
+      errors.push('Item ' + (idx + 1) + ': stock insuficiente para ' + flavor.name + '.');
+      return;
+    }
+    items.push({
+      flavor_id: flavor.id,
+      name: flavor.name,
+      price: Number(flavor.price) || 0,
+      quantity: qty
+    });
+  });
+
+  var total = items.reduce(function (sum, it) { return sum + it.price * it.quantity; }, 0);
+  return { items: items, total: total, errors: errors };
+}
+
+async function submitManualOrder() {
+  var payload = collectManualOrderItems();
+  if (payload.errors.length > 0) {
+    alert(payload.errors.join('\n'));
+    return;
+  }
+  if (payload.items.length === 0) {
+    alert('Agrega al menos un item.');
+    return;
+  }
+
+  var notesEl = document.getElementById('manual-order-notes');
+  var notes = notesEl ? notesEl.value.trim() : '';
+  var saveBtn = document.getElementById('manual-order-save-btn');
+  if (saveBtn) {
+    saveBtn.disabled = true;
+    saveBtn.textContent = 'Procesando...';
+  }
+
+  try {
+    var insert = await supabaseClient
+      .from('orders')
+      .insert([{
+        items: payload.items,
+        total: payload.total,
+        status: 'pending',
+        admin_notes: notes || 'Orden manual'
+      }])
+      .select('id')
+      .single();
+
+    if (insert.error || !insert.data) throw (insert.error || new Error('No se pudo crear la orden manual'));
+    await callProcessOrder(insert.data.id, payload.items, notes || 'Orden manual');
+
+    showToast('Compra manual registrada y procesada');
+    closeManualOrderModal();
+    loadOrders();
+    loadAdminFlavors();
+  } catch (error) {
+    alert('Error en compra manual:\n' + error.message);
+  } finally {
+    if (saveBtn) {
+      saveBtn.disabled = false;
+      saveBtn.textContent = 'Guardar y procesar';
+    }
   }
 }
 
@@ -510,8 +744,17 @@ async function processOrder(orderId) {
   var adminNotes = document.getElementById('order-admin-notes-' + orderId);
   var notes = adminNotes ? adminNotes.value.trim() : '';
 
-  // Filtrar items con cantidad > 0
-  var validItems = items.filter(function (it) { return it.quantity > 0; });
+  // Filtrar items con cantidad > 0 y normalizar shape para la Edge Function.
+  var validItems = items
+    .filter(function (it) { return (parseInt(it.quantity, 10) || 0) > 0; })
+    .map(function (it) {
+      return {
+        flavor_id: it.flavor_id || it.id || null,
+        name: it.name,
+        price: Number(it.price) || 0,
+        quantity: parseInt(it.quantity, 10) || 0
+      };
+    });
   if (validItems.length === 0) {
     alert('No hay items con cantidad mayor a 0.');
     return;
@@ -523,36 +766,7 @@ async function processOrder(orderId) {
   if (processBtn) { processBtn.disabled = true; processBtn.textContent = '⏳ Procesando...'; }
 
   try {
-    var functionsUrl = typeof FUNCTIONS_URL !== 'undefined' ? FUNCTIONS_URL : null;
-    if (!functionsUrl) throw new Error('FUNCTIONS_URL no configurado en config.js');
-
-    var sessionResult = await supabaseClient.auth.getSession();
-    var token = sessionResult.data.session ? sessionResult.data.session.access_token : null;
-    if (!token) throw new Error('Sesión expirada. Por favor vuelve a iniciar sesión.');
-
-    var anonKey = typeof SUPABASE_ANON_KEY !== 'undefined' ? SUPABASE_ANON_KEY : '';
-
-    var response = await fetch(functionsUrl + '/process-order', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'apikey': anonKey,
-        'Authorization': 'Bearer ' + token
-      },
-      body: JSON.stringify({
-        order_id: orderId,
-        items: validItems,
-        admin_notes: notes
-      })
-    });
-
-    var data = await response.json();
-
-    if (!response.ok) {
-      var errMsg = data.error || 'Error al procesar';
-      if (data.details) errMsg += '\n' + data.details.join('\n');
-      throw new Error(errMsg);
-    }
+    var data = await callProcessOrder(orderId, validItems, notes);
 
     showToast('✓ Pedido ' + data.order_number + ' procesado — inventario actualizado');
     loadAdminFlavors();
@@ -607,11 +821,18 @@ function safeAttr(str) {
 
 document.addEventListener('DOMContentLoaded', function () {
   initAuth();
-  document.addEventListener('keydown', function (e) { if (e.key === 'Escape') closeModal(); });
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape') {
+      closeModal();
+      closeManualOrderModal();
+    }
+  });
   var pwd = document.getElementById('login-password');
   if (pwd) pwd.addEventListener('keydown', function (e) { if (e.key === 'Enter') login(); });
   var overlay = document.getElementById('modal-overlay');
   if (overlay) overlay.addEventListener('click', function (e) { if (e.target === this) closeModal(); });
+  var manualOverlay = document.getElementById('manual-order-overlay');
+  if (manualOverlay) manualOverlay.addEventListener('click', function (e) { if (e.target === this) closeManualOrderModal(); });
 
   // Buscar orden con Enter
   var searchInput = document.getElementById('order-search-input');

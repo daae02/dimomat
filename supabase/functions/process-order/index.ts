@@ -1,17 +1,8 @@
 // ================================================
 // EDGE FUNCTION: process-order
 // ================================================
-// Procesa una orden: descuenta el inventario y marca la orden como procesada.
-// REQUIERE autenticación de administrador (JWT de Supabase Auth).
-//
-// Uso:
-//   POST /functions/v1/process-order
-//   Headers: Authorization: Bearer <admin_jwt>
-//   Body: {
-//     order_id: "uuid",
-//     items: [{flavor_id: "uuid", name: "Fresa", price: 20, quantity: 2}],
-//     admin_notes: "opcional"
-//   }
+// Procesa una orden: descuenta inventario y marca la orden como procesada.
+// Requiere autenticacion de administrador (JWT de Supabase Auth).
 // ================================================
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
@@ -28,14 +19,14 @@ Deno.serve(async (req: Request) => {
 
   try {
     if (req.method !== 'POST') {
-      return new Response(JSON.stringify({ error: 'Método no permitido' }), {
+      return new Response(JSON.stringify({ error: 'Metodo no permitido' }), {
         status: 405,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
 
-    // Verificar autenticación
     const authHeader = req.headers.get('Authorization');
+    console.log('[process-order][debug] hasAuthHeader=', !!authHeader, 'authHeaderLen=', authHeader ? authHeader.length : 0);
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
       return new Response(JSON.stringify({ error: 'No autorizado' }), {
         status: 401,
@@ -43,25 +34,30 @@ Deno.serve(async (req: Request) => {
       });
     }
 
-    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-    const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-    const anonKey = Deno.env.get('SUPABASE_ANON_KEY')!;
+    const supabaseUrl = Deno.env.get('SUPABASE_URL');
+    const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+    if (!supabaseUrl || !serviceRoleKey) {
+      return new Response(JSON.stringify({ error: 'Faltan variables de entorno de Supabase en la Function' }), {
+        status: 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
 
-    // Verificar que el JWT pertenece a un usuario autenticado
-    const userClient = createClient(supabaseUrl, anonKey, {
-      global: { headers: { Authorization: authHeader } },
-    });
+    // Cliente con service role para auth y operaciones privilegiadas.
+    const adminClient = createClient(supabaseUrl, serviceRoleKey);
 
-    const { data: { user }, error: authError } = await userClient.auth.getUser();
+    const token = authHeader.slice('Bearer '.length).trim();
+    console.log('[process-order][debug] tokenLen=', token.length, 'tokenPrefix=', token.slice(0, 20));
+    const { data: { user }, error: authError } = await adminClient.auth.getUser(token);
     if (authError || !user) {
-      return new Response(JSON.stringify({ error: 'Sesión inválida o expirada' }), {
+      return new Response(JSON.stringify({ error: 'Sesion invalida o expirada' }), {
         status: 401,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
 
     const body = await req.json();
-    const { order_id, items, admin_notes } = body;
+    const { order_id, items, admin_notes } = body ?? {};
 
     if (!order_id || !items || !Array.isArray(items) || items.length === 0) {
       return new Response(JSON.stringify({ error: 'Datos incompletos' }), {
@@ -70,10 +66,23 @@ Deno.serve(async (req: Request) => {
       });
     }
 
-    // Cliente con service role para operaciones privilegiadas
-    const adminClient = createClient(supabaseUrl, serviceRoleKey);
+    const normalizedItems = items
+      .map((item: any) => ({
+        flavor_id: item?.flavor_id ?? item?.id ?? null,
+        name: String(item?.name ?? ''),
+        price: Number(item?.price ?? 0),
+        quantity: Math.max(0, Number(item?.quantity ?? 0)),
+      }))
+      .filter((item: any) => item.quantity > 0);
 
-    // 1. Verificar que la orden existe y está pendiente
+    if (normalizedItems.length === 0) {
+      return new Response(JSON.stringify({ error: 'No hay items validos para procesar' }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    // 1) Verificar que la orden existe y sigue pendiente.
     const { data: order, error: orderError } = await adminClient
       .from('orders')
       .select('id, order_number, status')
@@ -101,10 +110,10 @@ Deno.serve(async (req: Request) => {
       });
     }
 
-    // 2. Verificar stock disponible para todos los items
+    // 2) Validar stock para todos los items con flavor_id.
     const stockErrors: string[] = [];
-    for (const item of items) {
-      if (!item.flavor_id) continue; // Ítems sin flavor_id no descuentan inventario
+    for (const item of normalizedItems) {
+      if (!item.flavor_id) continue;
 
       const { data: flavor, error: flavorError } = await adminClient
         .from('flavors')
@@ -123,82 +132,82 @@ Deno.serve(async (req: Request) => {
     }
 
     if (stockErrors.length > 0) {
-      return new Response(
-        JSON.stringify({ error: 'Stock insuficiente', details: stockErrors }),
-        {
-          status: 409,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        }
-      );
+      return new Response(JSON.stringify({ error: 'Stock insuficiente', details: stockErrors }), {
+        status: 409,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
     }
 
-    // 3. Descontar inventario (uno por uno para control de errores)
+    // 3) Descontar inventario.
     const updatedFlavors: { name: string; new_stock: number }[] = [];
-    for (const item of items) {
+    for (const item of normalizedItems) {
       if (!item.flavor_id) continue;
 
-      // Obtener stock actual (re-leer para evitar race conditions)
-      const { data: currentFlavor } = await adminClient
+      const { data: currentFlavor, error: currentFlavorError } = await adminClient
         .from('flavors')
         .select('stock, name')
         .eq('id', item.flavor_id)
         .single();
 
-      if (!currentFlavor) continue;
+      if (currentFlavorError || !currentFlavor) {
+        return new Response(JSON.stringify({ error: `No se pudo leer inventario para ${item.name}` }), {
+          status: 500,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
 
       const newStock = Math.max(0, currentFlavor.stock - item.quantity);
-
-      await adminClient
+      const { error: updateFlavorError } = await adminClient
         .from('flavors')
-        .update({
-          stock: newStock,
-          is_available: newStock > 0,
-        })
+        .update({ stock: newStock, is_available: newStock > 0 })
         .eq('id', item.flavor_id);
+
+      if (updateFlavorError) {
+        return new Response(JSON.stringify({ error: `Error actualizando stock de ${currentFlavor.name}: ${updateFlavorError.message}` }), {
+          status: 500,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
 
       updatedFlavors.push({ name: currentFlavor.name, new_stock: newStock });
     }
 
-    // 4. Calcular nuevo total con los items editados
-    const newTotal = items.reduce((sum: number, item: any) => {
+    // 4) Recalcular total y cerrar orden.
+    const newTotal = normalizedItems.reduce((sum: number, item: any) => {
       return sum + (item.price || 0) * (item.quantity || 0);
     }, 0);
 
-    // 5. Marcar la orden como procesada y guardar los items editados
-    const { error: updateError } = await adminClient
+    const { error: updateOrderError } = await adminClient
       .from('orders')
       .update({
         status: 'processed',
-        items: items,
+        items: normalizedItems,
         total: newTotal,
         admin_notes: admin_notes || null,
         processed_at: new Date().toISOString(),
       })
       .eq('id', order_id);
 
-    if (updateError) {
-      return new Response(JSON.stringify({ error: 'Error actualizando orden: ' + updateError.message }), {
+    if (updateOrderError) {
+      return new Response(JSON.stringify({ error: 'Error actualizando orden: ' + updateOrderError.message }), {
         status: 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
 
-    return new Response(
-      JSON.stringify({
-        success: true,
-        order_number: order.order_number,
-        updated_flavors: updatedFlavors,
-        message: `Orden ${order.order_number} procesada correctamente. Inventario actualizado.`,
-      }),
-      {
-        status: 200,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      }
-    );
-
+    return new Response(JSON.stringify({
+      success: true,
+      order_number: order.order_number,
+      updated_flavors: updatedFlavors,
+      message: `Orden ${order.order_number} procesada correctamente. Inventario actualizado.`,
+    }), {
+      status: 200,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
   } catch (err) {
+    const message = err instanceof Error ? err.message : 'Error interno del servidor';
     console.error('Error inesperado:', err);
-    return new Response(JSON.stringify({ error: 'Error interno del servidor' }), {
+    return new Response(JSON.stringify({ error: message }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });

@@ -201,7 +201,10 @@
         <div class="table-container">
           <div class="table-header">
             <h2 style="font-family:'Pacifico',cursive;color:#FF6B6B;font-size:1.2rem;margin:0">🛒 Pedidos Recientes</h2>
+            <div style="display:flex;gap:0.5rem;flex-wrap:wrap">
+              <button class="btn-secondary" onclick="openManualOrderModal()" style="padding:0.5rem 1rem;font-size:0.85rem;background:#25D366;color:#fff">+ Compra manual</button>
             <button class="btn-secondary" onclick="loadOrders()" style="padding:0.5rem 1rem;font-size:0.85rem">↻ Actualizar</button>
+            </div>
           </div>
           <div id="orders-list">
             <div style="text-align:center;padding:2rem;color:#718096">Cargando pedidos...</div>
@@ -278,6 +281,39 @@
     </div>
   </div>
 
+
+  <!-- MODAL COMPRA MANUAL -->
+  <div id="manual-order-overlay" class="modal-overlay" role="dialog" aria-modal="true">
+    <div class="modal" style="max-width:760px">
+      <div class="modal-header">
+        <h3 class="modal-title">Registrar compra manual</h3>
+        <button class="cart-close-btn" onclick="closeManualOrderModal()" style="color:#718096">�</button>
+      </div>
+      <div class="modal-body">
+        <p style="font-size:0.9rem;color:#718096;margin:0 0 1rem">
+          Esta compra se registrara como orden y se procesara automaticamente para descontar inventario.
+        </p>
+        <div id="manual-items-list" style="display:grid;gap:0.75rem"></div>
+        <div style="margin-top:0.75rem">
+          <button class="btn-secondary" onclick="addManualOrderRow()" style="width:auto;padding:0.5rem 1rem">+ Agregar item</button>
+        </div>
+        <div class="form-group" style="margin-top:1rem">
+          <label class="form-label" for="manual-order-notes">Notas</label>
+          <input id="manual-order-notes" class="form-input" type="text" placeholder="Ej: compra en mostrador">
+        </div>
+        <div style="display:flex;justify-content:flex-end;margin-top:1rem">
+          <div style="text-align:right">
+            <div style="font-size:0.85rem;color:#718096">Total</div>
+            <div id="manual-order-total" style="font-size:1.4rem;font-weight:900;color:#FF6B6B">&#8353;0.00</div>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-secondary" onclick="closeManualOrderModal()">Cancelar</button>
+        <button id="manual-order-save-btn" class="btn-primary" onclick="submitManualOrder()" style="width:auto;padding:0.7rem 1.5rem">Guardar y procesar</button>
+      </div>
+    </div>
+  </div>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="js/config.js"></script>
   <script src="js/supabase-client.js"></script>
@@ -285,3 +321,5 @@
 
 </body>
 </html>
+
+

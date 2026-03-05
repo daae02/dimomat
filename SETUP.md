@@ -104,7 +104,7 @@ Ve a https://github.com/supabase/cli/releases y descarga el `.exe`
 
 ```bash
 # Abrir Git Bash o PowerShell en la carpeta del proyecto
-cd C:/Users/Daae2/Documents/diemonmat
+cd C:/Users/Daae2/Documents/Dimomat
 
 # Login en Supabase
 supabase login
@@ -198,7 +198,7 @@ const CURRENCY_SYMBOL = '$';                                // <- Símbolo de mo
 **Opción B — Con Git (si lo tienes instalado):**
 
 ```bash
-cd C:/Users/Daae2/Documents/diemonmat
+cd C:/Users/Daae2/Documents/Dimomat
 git init
 git add index.html admin.html css/ js/ assets/ supabase/schema.sql SETUP.md
 git commit -m "Bolis Gourmet - sitio completo"
@@ -347,3 +347,4 @@ El proyecto fue construido con:
 - **WhatsApp wa.me** — sin costo
 
 Para dudas técnicas, el código fuente está completamente documentado en español.
+

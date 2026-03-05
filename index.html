@@ -97,7 +97,7 @@
     <div class="cart-footer">
       <div class="cart-total">
         <span style="font-weight:700">Total:</span>
-        <span id="cart-total-amount" class="cart-total-amount">$0.00</span>
+        <span id="cart-total-amount" class="cart-total-amount">&#8353;0.00</span>
       </div>
       <button
         id="whatsapp-order-btn"
@@ -139,6 +139,7 @@
     document.addEventListener('DOMContentLoaded', function () {
       // Cargar catálogo desde Supabase
       loadFlavors();
+      setInterval(function () { loadFlavors({ silent: true }); }, 15000);
 
       // Inicializar badge y carrito desde localStorage
       updateCartBadge();
@@ -166,3 +167,6 @@
 
 </body>
 </html>
+
+
+

@@ -9,7 +9,7 @@ Autor: Planner / Arquitecto
 ## Árbol de Archivos
 
 ```
-diemonmat/
+Dimomat/
 ├── index.html              # Página principal (catálogo + carrito)
 ├── admin.html              # Panel administrador (login + dashboard)
 ├── SETUP.md                # Guía de instalación y deploy
@@ -96,3 +96,4 @@ diemonmat/
 - **config.js no debe incluirse en el repositorio público** si el repositorio es visible. Agregar `config.js` al `.gitignore` y distribuirlo por canal privado al equipo.
 - Los archivos marcados como `TODO: Implementar` son placeholders creados por el Planner. Los coders deben reemplazar el contenido con la implementación real.
 - `design-mockup.html` y `test-report.md` son entregables de otros roles del equipo (Diseñador y Tester) y se crearán en sus respectivas fases.
+

@@ -76,7 +76,7 @@ function renderCart() {
   if (!list) return;
 
   var cart = getCart();
-  var sym = typeof CURRENCY_SYMBOL !== 'undefined' ? CURRENCY_SYMBOL : '$';
+  var sym = typeof CURRENCY_SYMBOL !== 'undefined' ? CURRENCY_SYMBOL : '\u20A1';
 
   if (cart.length === 0) {
     list.innerHTML = '<div class="cart-empty">' +

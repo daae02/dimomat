@@ -22,4 +22,6 @@ const WHATSAPP_NUMBER = '5219XXXXXXXXXX';
 const BUSINESS_NAME = 'Bolis Gourmet';
 
 // Moneda (simbolo)
-const CURRENCY_SYMBOL = '$';
+const CURRENCY_SYMBOL = '\u20A1';
+
+

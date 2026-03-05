@@ -20,14 +20,20 @@ var CATEGORY_EMOJI = {
   clasico: '🧊'
 };
 
+var isLoadingFlavors = false;
+
 // Carga sabores desde Supabase o usa datos de muestra
-async function loadFlavors() {
-  showSkeletons();
+async function loadFlavors(options) {
+  var silent = options && options.silent === true;
+  if (!silent) showSkeletons();
+  if (isLoadingFlavors) return;
+  isLoadingFlavors = true;
 
   if (!supabaseClient) {
     console.warn('Usando datos de muestra (Supabase no configurado)');
     setTimeout(function () {
       renderCatalog(SAMPLE_FLAVORS.filter(function (f) { return f.is_available; }));
+      isLoadingFlavors = false;
     }, 800);
     return;
   }
@@ -43,13 +49,16 @@ async function loadFlavors() {
 
     if (!result.data || result.data.length === 0) {
       showEmptyCatalog();
+      isLoadingFlavors = false;
       return;
     }
 
     renderCatalog(result.data);
   } catch (error) {
     console.error('Error cargando sabores:', error);
-    showCatalogError();
+    if (!silent) showCatalogError();
+  } finally {
+    isLoadingFlavors = false;
   }
 }
 
@@ -81,7 +90,7 @@ function renderFlavorCard(flavor) {
   var isOutOfStock = flavor.stock === 0;
   var isLowStock = flavor.stock > 0 && flavor.stock <= 5;
   var emoji = CATEGORY_EMOJI[flavor.category] || '🧊';
-  var sym = typeof CURRENCY_SYMBOL !== 'undefined' ? CURRENCY_SYMBOL : '$';
+  var sym = typeof CURRENCY_SYMBOL !== 'undefined' ? CURRENCY_SYMBOL : '\u20A1';
   var price = sym + parseFloat(flavor.price).toFixed(2);
 
   var stockBadge = isOutOfStock

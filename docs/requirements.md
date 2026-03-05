@@ -207,7 +207,7 @@ Autor: Ingeniería de Requerimientos
 ## 7. Estructura de Archivos del Proyecto
 
 ```
-diemonmat/
+Dimomat/
 ├── index.html              # Tienda pública (catálogo + carrito)
 ├── admin.html              # Panel de administración (requiere login)
 ├── config.js               # Credenciales de Supabase (NO versionar en público)
@@ -224,3 +224,4 @@ diemonmat/
 ---
 
 *Documento generado para el proyecto Bolis Gourmet — Negocio familiar pyme de bolis artesanales/gourmet.*
+
