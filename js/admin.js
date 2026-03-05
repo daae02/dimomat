@@ -349,7 +349,7 @@ async function loadOrders() {
         '<span class="order-number-big" style="font-size:1rem">' + safeText(o.order_number) + '</span>' +
         '<div>' +
           '<div style="font-weight:700;font-size:0.9rem">' + itemCount + ' boli(s) — ' + formatMoney(parseFloat(o.total)) + '</div>' +
-          <div style="font-size:0.82rem;color:#4A5568">Cliente: ' + customerName + '</div>
+          '<div style="font-size:0.82rem;color:#4A5568">Cliente: ' + customerName + '</div>' +
           '<div style="font-size:0.8rem;color:#718096">' + date + '</div>' +
         '</div>' +
         '<span class="order-status-badge ' + statusClass + '">' + statusLabel + '</span>' +
@@ -473,7 +473,7 @@ function renderOrderEditor(order) {
       '<div>' +
         '<span class="order-number-big">' + safeText(order.order_number) + '</span>' +
         '<span style="font-size:0.85rem;color:#718096;margin-left:0.75rem">' + date + '</span>' +
-        <div style="font-size:0.85rem;color:#4A5568;margin-top:0.25rem">Cliente: ' + customerName + '</div>
+        '<div style="font-size:0.85rem;color:#4A5568;margin-top:0.25rem">Cliente: ' + customerName + '</div>' +
       '</div>' +
       '<span class="order-status-badge ' + statusClass + '">' + statusLabel + '</span>' +
     '</div>' +
