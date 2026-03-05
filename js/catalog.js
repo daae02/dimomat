@@ -1,5 +1,5 @@
 // ================================================
-// CATALOGO DE SABORES - Bolis Gourmet
+// CATALOGO DE SABORES - Bolis Dimomat
 // ================================================
 // Requiere: supabase-client.js, cart.js cargados antes
 
@@ -24,6 +24,28 @@ var CATEGORY_EMOJI = {
 };
 
 var isLoadingFlavors = false;
+
+
+function formatColones(amount) {
+  var value = normalizeAmount(amount);
+  return value.toLocaleString('es-CR', { style: 'currency', currency: 'CRC', minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
+function normalizeAmount(amount) {
+  if (typeof amount === 'number') return Number.isFinite(amount) ? amount : 0;
+  if (typeof amount !== 'string') return Number(amount) || 0;
+
+  var raw = amount.trim();
+  if (!raw) return 0;
+  var cleaned = raw.replace(/[^\d,.-]/g, '');
+  if (cleaned.indexOf(',') !== -1 && cleaned.indexOf('.') === -1) {
+    cleaned = cleaned.replace(',', '.');
+  } else {
+    cleaned = cleaned.replace(/,/g, '');
+  }
+  var parsed = parseFloat(cleaned);
+  return Number.isFinite(parsed) ? parsed : 0;
+}
 
 // Carga sabores desde Supabase o usa datos de muestra
 async function loadFlavors(options) {
@@ -153,8 +175,7 @@ function renderFlavorCard(flavor) {
   var isOutOfStock = flavor.stock === 0;
   var isLowStock = flavor.stock > 0 && flavor.stock <= 5;
   var emoji = CATEGORY_EMOJI[flavor.category] || '🧊';
-  var sym = typeof CURRENCY_SYMBOL !== 'undefined' ? CURRENCY_SYMBOL : '\u20A1';
-  var price = sym + parseFloat(flavor.price).toFixed(2);
+  var price = formatColones(parseFloat(flavor.price));
 
   var stockBadge = isOutOfStock
     ? '<span class="flavor-stock-badge badge-out">Agotado</span>'
@@ -169,7 +190,7 @@ function renderFlavorCard(flavor) {
   var safeName = escapeHtml(flavor.name);
   var idForJs = JSON.stringify(String(flavor.id)).replace(/"/g, '&quot;');
   var nameForJs = JSON.stringify(String(flavor.name || '')).replace(/"/g, '&quot;');
-  var priceForJs = Number(flavor.price);
+  var priceForJs = normalizeAmount(flavor.price);
   if (!Number.isFinite(priceForJs)) priceForJs = 0;
   var stockForJs = Number(flavor.stock) || 0;
   var cartQty = getCartQtyForId(flavor.id);

@@ -1,15 +1,36 @@
 // ================================================
-// PEDIDO POR WHATSAPP - Bolis Gourmet
+// PEDIDO POR WHATSAPP - Bolis Dimomat
 // ================================================
 // Guarda la orden en Supabase (via Edge Function) y abre WhatsApp
 // con el numero de pedido incluido en el mensaje.
+
+
+function formatColones(amount) {
+  var value = normalizeAmount(amount);
+  return value.toLocaleString('es-CR', { style: 'currency', currency: 'CRC', minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
+function normalizeAmount(amount) {
+  if (typeof amount === 'number') return Number.isFinite(amount) ? amount : 0;
+  if (typeof amount !== 'string') return Number(amount) || 0;
+
+  var raw = amount.trim();
+  if (!raw) return 0;
+  var cleaned = raw.replace(/[^\d,.-]/g, '');
+  if (cleaned.indexOf(',') !== -1 && cleaned.indexOf('.') === -1) {
+    cleaned = cleaned.replace(',', '.');
+  } else {
+    cleaned = cleaned.replace(/,/g, '');
+  }
+  var parsed = parseFloat(cleaned);
+  return Number.isFinite(parsed) ? parsed : 0;
+}
 
 function formatWhatsAppMessage(orderNumber, customerName) {
   var cart = getCart();
   if (cart.length === 0) return '';
 
-  var sym = typeof CURRENCY_SYMBOL !== 'undefined' ? CURRENCY_SYMBOL : '\u20A1';
-  var bizName = typeof BUSINESS_NAME !== 'undefined' ? BUSINESS_NAME : 'Bolis Gourmet';
+  var bizName = typeof BUSINESS_NAME !== 'undefined' ? BUSINESS_NAME : 'Bolis Dimomat';
 
   var lines = [
     'Hola, me gustaria hacer el siguiente pedido de *' + bizName + '*:',
@@ -21,11 +42,11 @@ function formatWhatsAppMessage(orderNumber, customerName) {
 
   for (var i = 0; i < cart.length; i++) {
     var item = cart[i];
-    lines.push('- ' + item.name + ' x' + item.quantity + ' - ' + sym + (item.price * item.quantity).toFixed(2));
+    lines.push('- ' + item.name + ' x' + item.quantity + ' - ' + formatColones(normalizeAmount(item.price) * item.quantity));
   }
 
   lines.push('');
-  lines.push('*Total: ' + sym + getTotal().toFixed(2) + '*');
+  lines.push('*Total: ' + formatColones(getTotal()) + '*');
 
   if (orderNumber) {
     lines.push('');

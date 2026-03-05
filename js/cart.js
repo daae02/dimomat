@@ -1,8 +1,30 @@
 // ================================================
-// CARRITO DE COMPRAS - Bolis Gourmet
+// CARRITO DE COMPRAS - Bolis Dimomat
 // ================================================
 
-var CART_KEY = 'bolis_gourmet_cart';
+var CART_KEY = 'bolis_dimomat_cart';
+
+
+function formatColones(amount) {
+  var value = normalizeAmount(amount);
+  return value.toLocaleString('es-CR', { style: 'currency', currency: 'CRC', minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
+function normalizeAmount(amount) {
+  if (typeof amount === 'number') return Number.isFinite(amount) ? amount : 0;
+  if (typeof amount !== 'string') return Number(amount) || 0;
+
+  var raw = amount.trim();
+  if (!raw) return 0;
+  var cleaned = raw.replace(/[^\d,.-]/g, '');
+  if (cleaned.indexOf(',') !== -1 && cleaned.indexOf('.') === -1) {
+    cleaned = cleaned.replace(',', '.');
+  } else {
+    cleaned = cleaned.replace(/,/g, '');
+  }
+  var parsed = parseFloat(cleaned);
+  return Number.isFinite(parsed) ? parsed : 0;
+}
 
 function getCart() {
   try {
@@ -62,7 +84,7 @@ function clearCart() {
 }
 
 function getTotal() {
-  return getCart().reduce(function (sum, item) { return sum + item.price * item.quantity; }, 0);
+  return getCart().reduce(function (sum, item) { return sum + normalizeAmount(item.price) * item.quantity; }, 0);
 }
 
 function getItemCount() {
@@ -84,7 +106,6 @@ function renderCart() {
   if (!list) return;
 
   var cart = getCart();
-  var sym = typeof CURRENCY_SYMBOL !== 'undefined' ? CURRENCY_SYMBOL : '\u20A1';
 
   if (cart.length === 0) {
     list.innerHTML = '<div class="cart-empty">' +
@@ -92,7 +113,7 @@ function renderCart() {
       '<p style="font-weight:700;font-size:1.05rem">Tu carrito está vacío</p>' +
       '<p style="color:#718096;font-size:0.9rem">Agrega tus bolis favoritos</p>' +
       '</div>';
-    if (totalEl) totalEl.textContent = sym + '0.00';
+    if (totalEl) totalEl.textContent = formatColones(0);
     if (whatsappBtn) whatsappBtn.disabled = true;
     return;
   }
@@ -100,7 +121,7 @@ function renderCart() {
   var html = '';
   for (var i = 0; i < cart.length; i++) {
     var item = cart[i];
-    var subtotal = sym + (item.price * item.quantity).toFixed(2);
+    var subtotal = formatColones(normalizeAmount(item.price) * item.quantity);
     var safeName = String(item.name).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
     var atStockLimit = item.stock && item.quantity >= item.stock;
     html += '<div class="cart-item">' +
@@ -116,7 +137,7 @@ function renderCart() {
   }
   list.innerHTML = html;
 
-  if (totalEl) totalEl.textContent = sym + getTotal().toFixed(2);
+  if (totalEl) totalEl.textContent = formatColones(getTotal());
   if (whatsappBtn) whatsappBtn.disabled = false;
 }
 

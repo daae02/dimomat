@@ -1,5 +1,5 @@
 // ================================================
-// PANEL DE ADMINISTRACION - Bolis Gourmet
+// PANEL DE ADMINISTRACION - Bolis Dimomat
 // ================================================
 // Requiere: supabase-client.js cargado antes
 
@@ -7,12 +7,25 @@ var currentEditId = null;
 var manualOrderCatalog = [];
 var allAdminFlavors = [];
 
-function getCurrencySymbol() {
-  return typeof CURRENCY_SYMBOL !== 'undefined' && CURRENCY_SYMBOL ? CURRENCY_SYMBOL : '\u20A1';
+function formatMoney(amount) {
+  var value = normalizeAmount(amount);
+  return value.toLocaleString('es-CR', { style: 'currency', currency: 'CRC', minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
-function formatMoney(amount) {
-  return getCurrencySymbol() + Number(amount || 0).toFixed(2);
+function normalizeAmount(amount) {
+  if (typeof amount === 'number') return Number.isFinite(amount) ? amount : 0;
+  if (typeof amount !== 'string') return Number(amount) || 0;
+
+  var raw = amount.trim();
+  if (!raw) return 0;
+  var cleaned = raw.replace(/[^\d,.-]/g, '');
+  if (cleaned.indexOf(',') !== -1 && cleaned.indexOf('.') === -1) {
+    cleaned = cleaned.replace(',', '.');
+  } else {
+    cleaned = cleaned.replace(/,/g, '');
+  }
+  var parsed = parseFloat(cleaned);
+  return Number.isFinite(parsed) ? parsed : 0;
 }
 
 // ---- AUTH ----
