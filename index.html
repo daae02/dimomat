@@ -45,7 +45,6 @@
     <a href="index.html" class="navbar-brand">🧊 Bolis Dimomat</a>
 
     <div style="display:flex;align-items:center;gap:1rem">
-      <a href="#catalogo" style="color:rgba(255,255,255,0.9);text-decoration:none;font-weight:700;font-size:0.95rem;display:none" id="nav-link-sabores">Ver Sabores</a>
       <button class="cart-btn" onclick="openCart()" aria-label="Abrir carrito">
         🛒 Carrito
         <span id="cart-badge" class="cart-badge" style="display:none">0</span>
@@ -59,9 +58,6 @@
   <section class="hero">
     <h1 class="hero-title">Los mejores bolis artesanales</h1>
     <p class="hero-subtitle">Sabores únicos hechos con ingredientes frescos y mucho amor 🧡</p>
-    <button class="hero-btn" onclick="document.getElementById('catalogo').scrollIntoView({behavior:'smooth'})">
-      Ver sabores 🧊
-    </button>
   </section>
 
   <!-- ==============================
@@ -191,12 +187,6 @@
         footerLink.target = '_blank';
       }
 
-      // Mostrar link de nav en desktop
-      if (window.innerWidth > 640) {
-        var navLink = document.getElementById('nav-link-sabores');
-        if (navLink) navLink.style.display = 'block';
-      }
-
       // Cerrar carrito con tecla Escape
       document.addEventListener('keydown', function (e) {
         if (e.key === 'Escape') closeCart();
@@ -206,5 +196,4 @@
 
 </body>
 </html>
-
 

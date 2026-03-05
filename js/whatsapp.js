@@ -62,7 +62,14 @@ function formatWhatsAppMessage(orderNumber, customerName) {
 function getCustomerNameFromUI() {
   var input = document.getElementById('customer-name-input');
   if (!input) return '';
-  return (input.value || '').trim();
+  return (input.value || '').replace(/\s+/g, ' ').trim();
+}
+
+
+function isValidCustomerName(name) {
+  var cleaned = (name || '').replace(/\s+/g, ' ').trim();
+  if (cleaned.length < 3) return false;
+  return /^[A-Za-zÁÉÍÓÚÜÑáéíóúüñ' ]+$/.test(cleaned);
 }
 
 function setCheckoutFeedback(message, type) {
@@ -77,8 +84,8 @@ function updateWhatsAppOrderButtonState() {
   var btn = document.getElementById('whatsapp-order-btn');
   if (!btn) return;
   var cart = typeof getCart === 'function' ? getCart() : [];
-  var hasName = getCustomerNameFromUI().length > 0;
-  btn.disabled = cart.length === 0 || !hasName;
+  var hasValidName = isValidCustomerName(getCustomerNameFromUI());
+  btn.disabled = cart.length === 0 || !hasValidName;
 }
 
 function validateCustomerName() {
@@ -90,6 +97,13 @@ function validateCustomerName() {
   if (!customerName) {
     input.classList.add('invalid');
     setCheckoutFeedback('Porfa escribe tu nombre para continuar con el pedido 😊', '');
+    input.focus();
+    return '';
+  }
+
+  if (!isValidCustomerName(customerName)) {
+    input.classList.add('invalid');
+    setCheckoutFeedback('Usa un nombre valido (minimo 3 letras, sin numeros).', '');
     input.focus();
     return '';
   }
@@ -153,7 +167,7 @@ async function sendWhatsAppOrder() {
   // Restaurar boton
   if (btn) {
     btn.disabled = false;
-    btn.textContent = 'Hacer Pedido por WhatsApp';
+    btn.textContent = '📱 Hacer Pedido por WhatsApp';
   }
   setCheckoutFeedback('¡Listo! Te abrimos WhatsApp para finalizar tu pedido 🎉', 'success');
   updateWhatsAppOrderButtonState();
