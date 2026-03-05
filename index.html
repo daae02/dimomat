@@ -128,7 +128,7 @@
           placeholder="Ej. Ana Perez"
           autocomplete="name"
           maxlength="80"
-          aria-describedby="customer-name-help"
+          aria-describedby="customer-name-help checkout-feedback"
         >
         <p id="customer-name-help" class="checkout-field-help">Este nombre se enviará en tu pedido de WhatsApp.</p>
       </div>
@@ -145,6 +145,8 @@
       >
         📱 Hacer Pedido por WhatsApp
       </button>
+      <p class="checkout-pickup-disclaimer">💛 Todos los pedidos son para recoger en punto de entrega. ¡Gracias por apoyarnos!</p>
+      <p id="checkout-feedback" class="checkout-feedback" aria-live="polite"></p>
     </div>
   </aside>
 
@@ -170,7 +172,7 @@
   <script src="js/supabase-client.js?v=2"></script>
   <script src="js/cart.js?v=2"></script>
   <script src="js/catalog.js?v=2"></script>
-  <script src="js/whatsapp.js?v=2"></script>
+  <script src="js/whatsapp.js?v=3"></script>
 
   <script>
     document.addEventListener('DOMContentLoaded', function () {

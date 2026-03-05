@@ -65,6 +65,14 @@ function getCustomerNameFromUI() {
   return (input.value || '').trim();
 }
 
+function setCheckoutFeedback(message, type) {
+  var feedback = document.getElementById('checkout-feedback');
+  if (!feedback) return;
+  feedback.textContent = message || '';
+  feedback.classList.remove('info', 'success');
+  if (type === 'info' || type === 'success') feedback.classList.add(type);
+}
+
 function updateWhatsAppOrderButtonState() {
   var btn = document.getElementById('whatsapp-order-btn');
   if (!btn) return;
@@ -73,25 +81,40 @@ function updateWhatsAppOrderButtonState() {
   btn.disabled = cart.length === 0 || !hasName;
 }
 
+function validateCustomerName() {
+  var input = document.getElementById('customer-name-input');
+  var customerName = getCustomerNameFromUI();
+
+  if (!input) return customerName;
+
+  if (!customerName) {
+    input.classList.add('invalid');
+    setCheckoutFeedback('Porfa escribe tu nombre para continuar con el pedido 😊', '');
+    input.focus();
+    return '';
+  }
+
+  input.classList.remove('invalid');
+  setCheckoutFeedback('', '');
+  return customerName;
+}
+
 // Guarda la orden en Supabase y abre WhatsApp
 async function sendWhatsAppOrder() {
   var cart = getCart();
   if (cart.length === 0) {
-    alert('Tu carrito esta vacio. Agrega algunos bolis primero.');
+    setCheckoutFeedback('Tu carrito esta vacio. Agrega tus bolis favoritos primero ✨', '');
     return;
   }
 
   var number = typeof WHATSAPP_NUMBER !== 'undefined' ? WHATSAPP_NUMBER : '';
   if (!number || number === '5219XXXXXXXXXX') {
-    alert('El numero de WhatsApp no esta configurado.\nContacta al administrador.');
+    setCheckoutFeedback('Aun no tenemos configurado WhatsApp. Escríbenos directo y te ayudamos 🙏', '');
     return;
   }
 
-  var customerName = getCustomerNameFromUI();
+  var customerName = validateCustomerName();
   if (!customerName) {
-    alert('Ingresa tu nombre en el campo del carrito para enviar el pedido.');
-    var nameInput = document.getElementById('customer-name-input');
-    if (nameInput) nameInput.focus();
     updateWhatsAppOrderButtonState();
     return;
   }
@@ -101,6 +124,7 @@ async function sendWhatsAppOrder() {
     btn.disabled = true;
     btn.textContent = 'Generando pedido...';
   }
+  setCheckoutFeedback('Preparando tu pedido para WhatsApp...', 'info');
 
   var orderNumber = null;
 
@@ -131,6 +155,7 @@ async function sendWhatsAppOrder() {
     btn.disabled = false;
     btn.textContent = 'Hacer Pedido por WhatsApp';
   }
+  setCheckoutFeedback('¡Listo! Te abrimos WhatsApp para finalizar tu pedido 🎉', 'success');
   updateWhatsAppOrderButtonState();
 }
 
@@ -202,6 +227,14 @@ function showOrderConfirmation(orderNumber) {
 document.addEventListener('DOMContentLoaded', function () {
   var nameInput = document.getElementById('customer-name-input');
   if (!nameInput) return;
-  nameInput.addEventListener('input', updateWhatsAppOrderButtonState);
+
+  nameInput.addEventListener('input', function () {
+    if (nameInput.value.trim()) {
+      nameInput.classList.remove('invalid');
+      setCheckoutFeedback('', '');
+    }
+    updateWhatsAppOrderButtonState();
+  });
+
   updateWhatsAppOrderButtonState();
 });
