@@ -12,6 +12,9 @@ var SAMPLE_FLAVORS = [
   { id: '6', name: 'Limón con Chile', description: 'Limón fresco con chile piquín. Refrescante y picosito a la vez.', price: 20, stock: 35, category: 'picante', is_available: true, image_url: null }
 ];
 
+var allFlavors = [];
+var activeFilterCat = '';
+
 var CATEGORY_EMOJI = {
   frutal: '🍓',
   cremoso: '🍦',
@@ -78,12 +81,60 @@ function showSkeletons() {
 }
 
 function renderCatalog(flavors) {
+  allFlavors = flavors || [];
+  activeFilterCat = '';
+  var chip = document.querySelector('.filter-chip[data-cat=""]');
+  if (chip) {
+    document.querySelectorAll('.filter-chip').forEach(function (c) { c.classList.remove('active'); });
+    chip.classList.add('active');
+  }
+  var search = document.getElementById('catalog-search');
+  if (search) search.value = '';
+  _renderFilteredCatalog(allFlavors);
+}
+
+function _renderFilteredCatalog(flavors) {
   var grid = document.getElementById('flavors-grid');
   if (!grid) return;
-  if (!flavors || flavors.length === 0) { showEmptyCatalog(); return; }
+  if (!flavors || flavors.length === 0) {
+    var isFiltered = activeFilterCat || (document.getElementById('catalog-search') && document.getElementById('catalog-search').value.trim());
+    if (isFiltered) {
+      grid.innerHTML = '<div class="no-results-msg"><div style="font-size:2.5rem">🔍</div><p style="font-size:1.1rem;font-weight:800;margin:0.5rem 0 0.25rem">Sin resultados</p><p style="font-size:0.9rem">Prueba con otra búsqueda o categoría</p></div>';
+    } else {
+      showEmptyCatalog();
+    }
+    return;
+  }
   var html = '';
   for (var i = 0; i < flavors.length; i++) { html += renderFlavorCard(flavors[i]); }
   grid.innerHTML = html;
+}
+
+function filterCatalog() {
+  var query = (document.getElementById('catalog-search') ? document.getElementById('catalog-search').value : '').toLowerCase().trim();
+  var filtered = allFlavors.filter(function (f) {
+    var matchCat = !activeFilterCat || f.category === activeFilterCat;
+    var matchName = !query ||
+      (f.name || '').toLowerCase().indexOf(query) !== -1 ||
+      (f.description || '').toLowerCase().indexOf(query) !== -1;
+    return matchCat && matchName;
+  });
+  _renderFilteredCatalog(filtered);
+}
+
+function selectFilterChip(btn) {
+  document.querySelectorAll('.filter-chip').forEach(function (c) { c.classList.remove('active'); });
+  btn.classList.add('active');
+  activeFilterCat = btn.dataset.cat || '';
+  filterCatalog();
+}
+
+function getCartQtyForId(id) {
+  var cart = typeof getCart === 'function' ? getCart() : [];
+  for (var i = 0; i < cart.length; i++) {
+    if (String(cart[i].id) === String(id)) return cart[i].quantity;
+  }
+  return 0;
 }
 
 function renderFlavorCard(flavor) {
@@ -97,20 +148,28 @@ function renderFlavorCard(flavor) {
     ? '<span class="flavor-stock-badge badge-out">Agotado</span>'
     : isLowStock
       ? '<span class="flavor-stock-badge badge-low">Últimos ' + flavor.stock + '</span>'
-      : '<span class="flavor-stock-badge badge-available">Disponible</span>';
+      : '<span class="flavor-stock-badge badge-available">' + flavor.stock + ' disp.</span>';
 
   var imgHtml = flavor.image_url
     ? '<img src="' + escapeHtml(flavor.image_url) + '" alt="' + escapeHtml(flavor.name) + '" loading="lazy" style="width:100%;height:100%;object-fit:cover" onerror="this.parentNode.innerHTML=\'<span style=font-size:3.5rem>' + emoji + '</span>\'">'
     : '<span style="font-size:3.5rem">' + emoji + '</span>';
 
-  var safeName = escapeHtml(flavor.name); // solo para display HTML
-  // Serialize args safely for inline onclick inside a double-quoted HTML attribute.
+  var safeName = escapeHtml(flavor.name);
   var idForJs = JSON.stringify(String(flavor.id)).replace(/"/g, '&quot;');
   var nameForJs = JSON.stringify(String(flavor.name || '')).replace(/"/g, '&quot;');
   var priceForJs = Number(flavor.price);
   if (!Number.isFinite(priceForJs)) priceForJs = 0;
-  var btnDisabled = isOutOfStock ? 'disabled' : '';
-  var btnText = isOutOfStock ? 'Agotado' : 'Agregar al carrito 🛒';
+  var stockForJs = Number(flavor.stock) || 0;
+  var cartQty = getCartQtyForId(flavor.id);
+  var atLimit = !isOutOfStock && stockForJs > 0 && cartQty >= stockForJs;
+  var btnDisabled = isOutOfStock || atLimit ? 'disabled' : '';
+  var btnText = isOutOfStock
+    ? 'Agotado'
+    : atLimit
+      ? 'Limite alcanzado (' + cartQty + ')'
+      : cartQty > 0
+        ? 'Agregar mas (' + cartQty + ' en carrito) 🛒'
+        : 'Agregar al carrito 🛒';
 
   return '<div class="flavor-card">' +
     '<div class="flavor-card-img">' + imgHtml + '</div>' +
@@ -122,21 +181,28 @@ function renderFlavorCard(flavor) {
         stockBadge +
       '</div>' +
       '<button class="add-to-cart-btn" ' + btnDisabled +
-        ' onclick="handleAddToCart(' + idForJs + ', ' + nameForJs + ', ' + priceForJs + ', this)">' +
+        ' onclick="handleAddToCart(' + idForJs + ', ' + nameForJs + ', ' + priceForJs + ', this, ' + stockForJs + ')">' +
         btnText +
       '</button>' +
     '</div>' +
   '</div>';
 }
 
-function handleAddToCart(id, name, price, btn) {
-  addToCart(id, name, price);
-  btn.classList.add('added');
-  btn.textContent = '✓ Agregado';
-  setTimeout(function () {
+function handleAddToCart(id, name, price, btn, stock) {
+  addToCart(id, name, price, stock);
+  var qty = getCartQtyForId(id);
+  if (stock > 0 && qty >= stock) {
+    btn.disabled = true;
     btn.classList.remove('added');
-    btn.textContent = 'Agregar al carrito 🛒';
-  }, 1500);
+    btn.textContent = 'Limite alcanzado (' + qty + ')';
+  } else {
+    btn.classList.add('added');
+    btn.textContent = '✓ ' + qty + ' en carrito';
+    setTimeout(function () {
+      btn.classList.remove('added');
+      btn.textContent = 'Agregar mas (' + qty + ' en carrito) 🛒';
+    }, 1200);
+  }
 }
 
 function showEmptyCatalog() {

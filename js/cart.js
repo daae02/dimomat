@@ -16,13 +16,19 @@ function saveCart(cart) {
   catch (e) { console.error('Error guardando carrito:', e); }
 }
 
-function addToCart(flavorId, name, price) {
+function addToCart(flavorId, name, price, stock) {
   var cart = getCart();
   var found = false;
   for (var i = 0; i < cart.length; i++) {
-    if (cart[i].id === flavorId) { cart[i].quantity += 1; found = true; break; }
+    if (cart[i].id === flavorId) {
+      if (stock && cart[i].quantity >= stock) return; // at stock limit
+      cart[i].quantity += 1;
+      if (stock) cart[i].stock = stock;
+      found = true;
+      break;
+    }
   }
-  if (!found) cart.push({ id: flavorId, name: name, price: price, quantity: 1 });
+  if (!found) cart.push({ id: flavorId, name: name, price: price, quantity: 1, stock: stock || 0 });
   saveCart(cart);
   updateCartBadge();
   renderCart();
@@ -38,7 +44,9 @@ function updateQuantity(flavorId, delta) {
   var cart = getCart();
   for (var i = 0; i < cart.length; i++) {
     if (cart[i].id === flavorId) {
-      cart[i].quantity = Math.max(1, cart[i].quantity + delta);
+      var newQty = cart[i].quantity + delta;
+      if (delta > 0 && cart[i].stock && newQty > cart[i].stock) return; // cap at stock
+      cart[i].quantity = Math.max(1, newQty);
       break;
     }
   }
@@ -94,12 +102,13 @@ function renderCart() {
     var item = cart[i];
     var subtotal = sym + (item.price * item.quantity).toFixed(2);
     var safeName = String(item.name).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    var atStockLimit = item.stock && item.quantity >= item.stock;
     html += '<div class="cart-item">' +
       '<div class="cart-item-name">' + safeName + '</div>' +
       '<div class="qty-controls">' +
         '<button class="qty-btn" onclick="updateQuantity(\'' + item.id + '\', -1)">−</button>' +
         '<span class="qty-value">' + item.quantity + '</span>' +
-        '<button class="qty-btn" onclick="updateQuantity(\'' + item.id + '\', 1)">+</button>' +
+        '<button class="qty-btn" onclick="updateQuantity(\'' + item.id + '\', 1)"' + (atStockLimit ? ' disabled title="Stock maximo"' : '') + '>+</button>' +
       '</div>' +
       '<div class="cart-item-price">' + subtotal + '</div>' +
       '<button class="remove-item-btn" onclick="removeFromCart(\'' + item.id + '\')" title="Eliminar">✕</button>' +

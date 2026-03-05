@@ -162,6 +162,34 @@
             <h2 style="font-family:'Pacifico',cursive;color:#FF6B6B;font-size:1.2rem;margin:0">📋 Inventario de Sabores</h2>
             <button class="btn-add-flavor" onclick="openAddModal()">+ Agregar Sabor</button>
           </div>
+          <!-- Filtros de inventario -->
+          <div class="admin-filter-bar">
+            <div class="admin-filter-search-wrap">
+              <input
+                type="search"
+                id="admin-flavor-search"
+                class="admin-filter-input"
+                placeholder="Buscar sabor..."
+                oninput="filterAdminFlavors()"
+                autocomplete="off"
+                aria-label="Buscar sabor"
+              >
+            </div>
+            <select id="admin-cat-filter" class="admin-filter-select" onchange="filterAdminFlavors()" aria-label="Filtrar por categoría">
+              <option value="">Todas las categorías</option>
+              <option value="clasico">🧊 Clásico</option>
+              <option value="frutal">🍓 Frutal</option>
+              <option value="cremoso">🍦 Cremoso</option>
+              <option value="picante">🌶️ Picante</option>
+              <option value="especial">⭐ Especial</option>
+            </select>
+            <select id="admin-stock-filter" class="admin-filter-select" onchange="filterAdminFlavors()" aria-label="Filtrar por stock">
+              <option value="">Todo el stock</option>
+              <option value="available">Disponible</option>
+              <option value="low">Stock bajo (&le;5)</option>
+              <option value="out">Agotado</option>
+            </select>
+          </div>
           <div style="overflow-x:auto">
             <table class="admin-table">
               <thead>
@@ -287,7 +315,7 @@
     <div class="modal" style="max-width:760px">
       <div class="modal-header">
         <h3 class="modal-title">Registrar compra manual</h3>
-        <button class="cart-close-btn" onclick="closeManualOrderModal()" style="color:#718096">�</button>
+        <button class="cart-close-btn" onclick="closeManualOrderModal()" style="color:#718096">�</button>
       </div>
       <div class="modal-body">
         <p style="font-size:0.9rem;color:#718096;margin:0 0 1rem">

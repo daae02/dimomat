@@ -366,6 +366,7 @@ body {
   width: 420px;
   max-width: 100vw;
   height: 100vh;
+  height: 100dvh; /* descuenta barras del navegador en móvil */
   background: white;
   z-index: 201;
   box-shadow: -4px 0 20px rgba(0,0,0,0.15);
@@ -485,6 +486,7 @@ body {
 
 .cart-footer {
   padding: 1.25rem 1.5rem;
+  padding-bottom: max(1.25rem, env(safe-area-inset-bottom));
   border-top: 2px solid #f5f5f5;
   flex-shrink: 0;
 }
@@ -992,4 +994,165 @@ body {
   .flavors-grid {
     grid-template-columns: 1fr;
   }
+}
+
+/* ================================================
+   FILTROS - CATALOGO CLIENTE
+   ================================================ */
+
+.catalog-filters {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin-bottom: 1.75rem;
+}
+
+.filter-search-wrap {
+  position: relative;
+}
+
+.filter-search-icon {
+  position: absolute;
+  left: 1rem;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 1rem;
+  pointer-events: none;
+  line-height: 1;
+}
+
+.catalog-search-input {
+  width: 100%;
+  padding: 0.75rem 1rem 0.75rem 2.75rem;
+  border: 2px solid #E2E8F0;
+  border-radius: 50px;
+  font-family: 'Nunito', sans-serif;
+  font-size: 1rem;
+  font-weight: 600;
+  outline: none;
+  background: white;
+  transition: border-color 0.2s, box-shadow 0.2s;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+  color: var(--text-primary);
+}
+
+.catalog-search-input:focus {
+  border-color: var(--color-primary);
+  box-shadow: 0 2px 12px rgba(255,107,107,0.2);
+}
+
+.catalog-search-input::placeholder { color: #A0AEC0; }
+
+.filter-chips {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.filter-chip {
+  padding: 0.4rem 0.9rem;
+  border-radius: 50px;
+  border: 2px solid #E2E8F0;
+  background: white;
+  font-family: 'Nunito', sans-serif;
+  font-weight: 700;
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: all 0.2s;
+  color: var(--text-secondary);
+  white-space: nowrap;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.05);
+}
+
+.filter-chip:hover {
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+}
+
+.filter-chip.active {
+  background: var(--color-primary);
+  border-color: var(--color-primary);
+  color: white;
+  box-shadow: 0 2px 8px rgba(255,107,107,0.35);
+}
+
+.no-results-msg {
+  grid-column: 1 / -1;
+  text-align: center;
+  padding: 3rem 1rem;
+  color: var(--text-secondary);
+}
+
+.no-results-msg p { margin: 0.35rem 0; }
+
+/* ================================================
+   FILTROS - ADMIN INVENTARIO
+   ================================================ */
+
+.admin-filter-bar {
+  display: flex;
+  gap: 0.75rem;
+  align-items: center;
+  flex-wrap: wrap;
+  padding: 1rem 1.5rem;
+  border-bottom: 1px solid #f0f0f0;
+  background: #FAFCFF;
+}
+
+.admin-filter-search-wrap {
+  position: relative;
+  flex: 1;
+  min-width: 160px;
+}
+
+.admin-filter-search-wrap::before {
+  content: '🔍';
+  position: absolute;
+  left: 0.65rem;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 0.8rem;
+  pointer-events: none;
+  line-height: 1;
+}
+
+.admin-filter-input {
+  width: 100%;
+  padding: 0.55rem 0.9rem 0.55rem 2.2rem;
+  border: 2px solid #E2E8F0;
+  border-radius: 8px;
+  font-family: 'Nunito', sans-serif;
+  font-size: 0.9rem;
+  font-weight: 600;
+  outline: none;
+  transition: border-color 0.2s;
+  background: white;
+  color: var(--text-primary);
+}
+
+.admin-filter-input:focus { border-color: var(--color-primary); }
+.admin-filter-input::placeholder { color: #A0AEC0; }
+
+.admin-filter-select {
+  padding: 0.55rem 0.9rem;
+  border: 2px solid #E2E8F0;
+  border-radius: 8px;
+  font-family: 'Nunito', sans-serif;
+  font-size: 0.9rem;
+  font-weight: 600;
+  outline: none;
+  background: white;
+  cursor: pointer;
+  color: var(--text-primary);
+  transition: border-color 0.2s;
+}
+
+.admin-filter-select:focus { border-color: var(--color-primary); }
+
+@media (max-width: 640px) {
+  .admin-filter-bar { gap: 0.5rem; }
+  .admin-filter-search-wrap { min-width: 100%; }
+  .admin-filter-select { flex: 1; min-width: 130px; }
+
+  .filter-chip { font-size: 0.8rem; padding: 0.35rem 0.7rem; }
 }

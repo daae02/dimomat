@@ -5,6 +5,7 @@
 
 var currentEditId = null;
 var manualOrderCatalog = [];
+var allAdminFlavors = [];
 
 function getCurrencySymbol() {
   return typeof CURRENCY_SYMBOL !== 'undefined' && CURRENCY_SYMBOL ? CURRENCY_SYMBOL : '\u20A1';
@@ -112,8 +113,9 @@ async function loadAdminFlavors() {
   try {
     var result = await supabaseClient.from('flavors').select('*').order('created_at', { ascending: false });
     if (result.error) throw result.error;
-    renderAdminTable(result.data || []);
-    renderStatsCards(result.data || []);
+    allAdminFlavors = result.data || [];
+    renderAdminTable(allAdminFlavors);
+    renderStatsCards(allAdminFlavors);
   } catch (error) {
     tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:2rem;color:#E53E3E">Error: ' + error.message + '</td></tr>';
   }
@@ -132,6 +134,22 @@ async function renderStatsCards(flavors) {
   } catch (e) {
     s('stat-orders-pending', '—');
   }
+}
+
+function filterAdminFlavors() {
+  var query = (document.getElementById('admin-flavor-search') ? document.getElementById('admin-flavor-search').value : '').toLowerCase().trim();
+  var cat = document.getElementById('admin-cat-filter') ? document.getElementById('admin-cat-filter').value : '';
+  var stock = document.getElementById('admin-stock-filter') ? document.getElementById('admin-stock-filter').value : '';
+  var filtered = allAdminFlavors.filter(function (f) {
+    var matchName = !query || (f.name || '').toLowerCase().indexOf(query) !== -1;
+    var matchCat = !cat || f.category === cat;
+    var matchStock = !stock ||
+      (stock === 'available' && f.is_available && f.stock > 0) ||
+      (stock === 'low' && f.stock > 0 && f.stock <= 5) ||
+      (stock === 'out' && f.stock === 0);
+    return matchName && matchCat && matchStock;
+  });
+  renderAdminTable(filtered);
 }
 
 var CAT_LABELS = { frutal: 'Frutal', cremoso: 'Cremoso', picante: 'Picante', especial: 'Especial', clasico: 'Clásico' };

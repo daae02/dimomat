@@ -71,6 +71,30 @@
     <h2 class="section-title">Nuestros Sabores</h2>
     <p class="section-subtitle">Elige tus favoritos y haz tu pedido fácil por WhatsApp 📱</p>
 
+    <!-- Buscador y filtros -->
+    <div class="catalog-filters">
+      <div class="filter-search-wrap">
+        <span class="filter-search-icon">🔍</span>
+        <input
+          type="search"
+          id="catalog-search"
+          class="catalog-search-input"
+          placeholder="Buscar sabor..."
+          oninput="filterCatalog()"
+          autocomplete="off"
+          aria-label="Buscar sabores"
+        >
+      </div>
+      <div class="filter-chips" role="group" aria-label="Filtrar por categoría">
+        <button class="filter-chip active" data-cat="" onclick="selectFilterChip(this)">Todos</button>
+        <button class="filter-chip" data-cat="frutal" onclick="selectFilterChip(this)">🍓 Frutal</button>
+        <button class="filter-chip" data-cat="cremoso" onclick="selectFilterChip(this)">🍦 Cremoso</button>
+        <button class="filter-chip" data-cat="picante" onclick="selectFilterChip(this)">🌶️ Picante</button>
+        <button class="filter-chip" data-cat="especial" onclick="selectFilterChip(this)">⭐ Especial</button>
+        <button class="filter-chip" data-cat="clasico" onclick="selectFilterChip(this)">🧊 Clásico</button>
+      </div>
+    </div>
+
     <div id="flavors-grid" class="flavors-grid">
       <!-- Las cards se generan dinámicamente desde catalog.js -->
     </div>
