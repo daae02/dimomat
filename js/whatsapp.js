@@ -59,6 +59,20 @@ function formatWhatsAppMessage(orderNumber, customerName) {
   return lines.join('\n');
 }
 
+function getCustomerNameFromUI() {
+  var input = document.getElementById('customer-name-input');
+  if (!input) return '';
+  return (input.value || '').trim();
+}
+
+function updateWhatsAppOrderButtonState() {
+  var btn = document.getElementById('whatsapp-order-btn');
+  if (!btn) return;
+  var cart = typeof getCart === 'function' ? getCart() : [];
+  var hasName = getCustomerNameFromUI().length > 0;
+  btn.disabled = cart.length === 0 || !hasName;
+}
+
 // Guarda la orden en Supabase y abre WhatsApp
 async function sendWhatsAppOrder() {
   var cart = getCart();
@@ -73,10 +87,12 @@ async function sendWhatsAppOrder() {
     return;
   }
 
-  var customerName = prompt('Ingresa tu nombre para el pedido:');
-  customerName = customerName ? customerName.trim() : '';
+  var customerName = getCustomerNameFromUI();
   if (!customerName) {
-    alert('El nombre es obligatorio para enviar el pedido.');
+    alert('Ingresa tu nombre en el campo del carrito para enviar el pedido.');
+    var nameInput = document.getElementById('customer-name-input');
+    if (nameInput) nameInput.focus();
+    updateWhatsAppOrderButtonState();
     return;
   }
 
@@ -115,6 +131,7 @@ async function sendWhatsAppOrder() {
     btn.disabled = false;
     btn.textContent = 'Hacer Pedido por WhatsApp';
   }
+  updateWhatsAppOrderButtonState();
 }
 
 // Llama a la Edge Function create-order y retorna el numero de pedido
@@ -181,3 +198,10 @@ function showOrderConfirmation(orderNumber) {
   document.body.appendChild(toast);
   setTimeout(function () { if (toast.parentNode) toast.remove(); }, 8000);
 }
+
+document.addEventListener('DOMContentLoaded', function () {
+  var nameInput = document.getElementById('customer-name-input');
+  if (!nameInput) return;
+  nameInput.addEventListener('input', updateWhatsAppOrderButtonState);
+  updateWhatsAppOrderButtonState();
+});
