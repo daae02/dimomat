@@ -1,4 +1,4 @@
-# Estructura de Archivos — Bolis Gourmet
+# Estructura de Archivos — Bolis Dimomat
 
 Versión: 1.0
 Fecha: 2026-03-04

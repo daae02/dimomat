@@ -1,4 +1,4 @@
-# Documentación de Requerimientos — Bolis Gourmet
+# Documentación de Requerimientos — Bolis Dimomat
 
 Versión: 1.0
 Fecha: 2026-03-04
@@ -8,9 +8,9 @@ Autor: Ingeniería de Requerimientos
 
 ## 1. Descripción del Proyecto
 
-**Nombre:** Bolis Gourmet
+**Nombre:** Bolis Dimomat
 
-**Objetivo:** Desarrollar una página web estática para el negocio familiar Bolis Gourmet, que permita a los clientes explorar el catálogo de sabores disponibles y realizar pedidos a través de WhatsApp, y que además ofrezca un panel de administración para que la dueña gestione el inventario de forma autónoma.
+**Objetivo:** Desarrollar una página web estática para el negocio familiar Bolis Dimomat, que permita a los clientes explorar el catálogo de sabores disponibles y realizar pedidos a través de WhatsApp, y que además ofrezca un panel de administración para que la dueña gestione el inventario de forma autónoma.
 
 **Público objetivo:**
 - **Clientes finales:** Personas interesadas en comprar bolis artesanales/gourmet (helados en palito o en sobre). Acceden sin necesidad de registro.
@@ -223,5 +223,5 @@ Dimomat/
 
 ---
 
-*Documento generado para el proyecto Bolis Gourmet — Negocio familiar pyme de bolis artesanales/gourmet.*
+*Documento generado para el proyecto Bolis Dimomat — Negocio familiar pyme de bolis artesanales/gourmet.*
 

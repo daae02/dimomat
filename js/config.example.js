@@ -1,5 +1,5 @@
 // ================================================
-// CONFIGURACION BOLIS GOURMET
+// CONFIGURACION BOLIS DIMOMAT
 // ================================================
 // IMPORTANTE: Copia este archivo como js/config.js
 // y actualiza los valores con tus datos reales.
@@ -19,7 +19,7 @@ const FUNCTIONS_URL = SUPABASE_URL !== 'https://TU_PROYECTO.supabase.co'
 const WHATSAPP_NUMBER = '5219XXXXXXXXXX';
 
 // Nombre del negocio (aparece en mensajes y titulos)
-const BUSINESS_NAME = 'Bolis Gourmet';
+const BUSINESS_NAME = 'Bolis Dimomat';
 
 // Moneda (simbolo)
 const CURRENCY_SYMBOL = '\u20A1';

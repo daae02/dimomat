@@ -1,4 +1,4 @@
-# Arquitectura Técnica - Bolis Gourmet
+# Arquitectura Técnica - Bolis Dimomat
 
 Versión: 1.0
 Fecha: 2026-03-04

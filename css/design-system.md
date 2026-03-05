@@ -1,4 +1,4 @@
-# Sistema de Diseno - Bolis Gourmet
+# Sistema de Diseno - Bolis Dimomat
 
 Version: 1.0
 Fecha: 2026-03-04
@@ -8,7 +8,7 @@ Autor: Disenador UI/UX
 
 ## 1. Identidad Visual
 
-**Nombre:** Bolis Gourmet
+**Nombre:** Bolis Dimomat
 **Personalidad:** Tropical, vibrante, artesanal, familiar y divertido.
 **Tono visual:** Colores calidos y saturados que evocan frutas tropicales, paletas y verano. Tipografia amigable y redondeada.
 
@@ -125,7 +125,7 @@ Comportamiento:
 Uso con Tailwind:
 ```html
 <nav class="navbar">
-  <a href="/" class="navbar-brand">Bolis Gourmet</a>
+  <a href="/" class="navbar-brand">Bolis Dimomat</a>
   <button class="cart-btn">
     Carrito
     <span class="cart-badge">3</span>
@@ -361,4 +361,4 @@ El diseno sigue el principio **mobile-first** con `clamp()` para tipografia flui
 
 ---
 
-*Sistema de diseno creado para Bolis Gourmet — 2026-03-04*
+*Sistema de diseno creado para Bolis Dimomat — 2026-03-04*

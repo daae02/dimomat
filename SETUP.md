@@ -1,4 +1,4 @@
-# Guía de Instalación y Deploy - Bolis Gourmet
+# Guía de Instalación y Deploy - Bolis Dimomat
 
 ## Requisitos previos
 - Cuenta en [GitHub](https://github.com) (gratis)
@@ -157,7 +157,7 @@ Luego abre `js/config.js` con cualquier editor de texto (Bloc de notas, VS Code,
 const SUPABASE_URL = 'https://TU_PROYECTO.supabase.co';    // <- Pega tu Project URL
 const SUPABASE_ANON_KEY = 'eyJ...TU_ANON_KEY...';          // <- Pega tu anon key
 const WHATSAPP_NUMBER = '5219XXXXXXXXXX';                   // <- Tu número con código país
-const BUSINESS_NAME = 'Bolis Gourmet';                      // <- Nombre de tu negocio
+const BUSINESS_NAME = 'Bolis Dimomat';                      // <- Nombre de tu negocio
 const CURRENCY_SYMBOL = '$';                                // <- Símbolo de moneda
 ```
 
@@ -192,7 +192,7 @@ const CURRENCY_SYMBOL = '$';                                // <- Símbolo de mo
 
 1. En tu repositorio vacío, haz clic en **"uploading an existing file"**
 2. Arrastra y suelta TODOS los archivos y carpetas del proyecto
-3. Escribe un mensaje: `Primer commit - Bolis Gourmet`
+3. Escribe un mensaje: `Primer commit - Bolis Dimomat`
 4. Haz clic en **"Commit changes"**
 
 **Opción B — Con Git (si lo tienes instalado):**
@@ -201,7 +201,7 @@ const CURRENCY_SYMBOL = '$';                                // <- Símbolo de mo
 cd C:/Users/Daae2/Documents/Dimomat
 git init
 git add index.html admin.html css/ js/ assets/ supabase/schema.sql SETUP.md
-git commit -m "Bolis Gourmet - sitio completo"
+git commit -m "Bolis Dimomat - sitio completo"
 git remote add origin https://github.com/TU_USUARIO/bolis-gourmet.git
 git push -u origin main
 ```
@@ -223,7 +223,7 @@ git push -u origin main
    - `SUPABASE_ANON_KEY`
    - `WHATSAPP_NUMBER`
 3. (Opcional) En **Variables**, crea:
-   - `BUSINESS_NAME` (ej. `Bolis Gourmet`)
+   - `BUSINESS_NAME` (ej. `Bolis Dimomat`)
    - `CURRENCY_SYMBOL` (ej. `$`)
 4. Haz push a `main` para ejecutar el workflow `.github/workflows/deploy-pages.yml`
 5. Espera 1-2 minutos y abre la URL publicada:

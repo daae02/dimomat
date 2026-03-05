@@ -1,5 +1,5 @@
 -- ================================================
--- SCHEMA BOLIS GOURMET
+-- SCHEMA BOLIS DIMOMAT
 -- Ejecutar en Supabase SQL Editor
 -- ================================================
 
