@@ -8,8 +8,24 @@ var manualOrderCatalog = [];
 var allAdminFlavors = [];
 
 function formatMoney(amount) {
-  var value = Number(amount || 0);
+  var value = normalizeAmount(amount);
   return value.toLocaleString('es-CR', { style: 'currency', currency: 'CRC', minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
+function normalizeAmount(amount) {
+  if (typeof amount === 'number') return Number.isFinite(amount) ? amount : 0;
+  if (typeof amount !== 'string') return Number(amount) || 0;
+
+  var raw = amount.trim();
+  if (!raw) return 0;
+  var cleaned = raw.replace(/[^\d,.-]/g, '');
+  if (cleaned.indexOf(',') !== -1 && cleaned.indexOf('.') === -1) {
+    cleaned = cleaned.replace(',', '.');
+  } else {
+    cleaned = cleaned.replace(/,/g, '');
+  }
+  var parsed = parseFloat(cleaned);
+  return Number.isFinite(parsed) ? parsed : 0;
 }
 
 // ---- AUTH ----

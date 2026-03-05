@@ -6,8 +6,24 @@ var CART_KEY = 'bolis_dimomat_cart';
 
 
 function formatColones(amount) {
-  var value = Number(amount || 0);
+  var value = normalizeAmount(amount);
   return value.toLocaleString('es-CR', { style: 'currency', currency: 'CRC', minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
+function normalizeAmount(amount) {
+  if (typeof amount === 'number') return Number.isFinite(amount) ? amount : 0;
+  if (typeof amount !== 'string') return Number(amount) || 0;
+
+  var raw = amount.trim();
+  if (!raw) return 0;
+  var cleaned = raw.replace(/[^\d,.-]/g, '');
+  if (cleaned.indexOf(',') !== -1 && cleaned.indexOf('.') === -1) {
+    cleaned = cleaned.replace(',', '.');
+  } else {
+    cleaned = cleaned.replace(/,/g, '');
+  }
+  var parsed = parseFloat(cleaned);
+  return Number.isFinite(parsed) ? parsed : 0;
 }
 
 function getCart() {
@@ -68,7 +84,7 @@ function clearCart() {
 }
 
 function getTotal() {
-  return getCart().reduce(function (sum, item) { return sum + item.price * item.quantity; }, 0);
+  return getCart().reduce(function (sum, item) { return sum + normalizeAmount(item.price) * item.quantity; }, 0);
 }
 
 function getItemCount() {
@@ -105,7 +121,7 @@ function renderCart() {
   var html = '';
   for (var i = 0; i < cart.length; i++) {
     var item = cart[i];
-    var subtotal = formatColones(item.price * item.quantity);
+    var subtotal = formatColones(normalizeAmount(item.price) * item.quantity);
     var safeName = String(item.name).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
     var atStockLimit = item.stock && item.quantity >= item.stock;
     html += '<div class="cart-item">' +
