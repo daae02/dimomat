@@ -6,6 +6,7 @@
 var currentEditId = null;
 var manualOrderCatalog = [];
 var allAdminFlavors = [];
+var orderEditorCatalog = [];
 
 function formatMoney(amount) {
   var value = normalizeAmount(amount);
@@ -443,6 +444,7 @@ async function openOrderEditor(orderId) {
   editor.scrollIntoView({ behavior: 'smooth', block: 'start' });
 
   try {
+    await loadOrderEditorCatalog();
     var result = await supabaseClient.from('orders').select('*').eq('id', orderId).single();
     if (result.error) throw result.error;
     renderOrderEditor(result.data);
@@ -476,6 +478,19 @@ function renderOrderEditor(order) {
       '<input class="order-qty-input" type="number" min="0" value="' + item.quantity + '" ' + readonlyAttr +
         ' onchange="updateOrderItemQty(\'' + order.id + '\', ' + i + ', this.value)" data-price="' + item.price + '">' +
       '<div style="font-weight:800;color:#FF6B6B;min-width:60px;text-align:right" id="item-subtotal-' + i + '">' + formatMoney(item.price * item.quantity) + '</div>' +
+      (isProcessed ? '' : '<button class="btn-secondary" style="padding:0.45rem 0.65rem;width:auto" onclick="removeOrderItem(\'' + order.id + '\', ' + i + ')">Quitar</button>') +
+    '</div>';
+  }
+
+  var addItemControls = '';
+  if (!isProcessed) {
+    addItemControls = '<div style="margin-top:1rem;padding-top:1rem;border-top:1px dashed #E2E8F0">' +
+      '<div style="font-size:0.85rem;color:#718096;font-weight:700;margin-bottom:0.5rem">Agregar otros bolis al pedido</div>' +
+      '<div style="display:grid;grid-template-columns:minmax(200px,1fr) 90px auto;gap:0.5rem;align-items:center">' +
+        '<select id="order-add-item-select-' + order.id + '" class="form-input">' + buildOrderEditorFlavorOptions() + '</select>' +
+        '<input id="order-add-item-qty-' + order.id + '" class="form-input" type="number" min="1" step="1" value="1">' +
+        '<button class="btn-primary" style="width:auto" onclick="addOrderItemFromCatalog(\'' + order.id + '\')">+ Agregar</button>' +
+      '</div>' +
     '</div>';
   }
 
@@ -511,6 +526,7 @@ function renderOrderEditor(order) {
     '<div class="order-items-editor">' +
       '<p style="font-weight:700;color:#718096;font-size:0.85rem;text-transform:uppercase;letter-spacing:0.05em;margin:0 0 0.75rem">Items del pedido ' + (isProcessed ? '' : '— puedes editar cantidades') + '</p>' +
       itemsHtml +
+      addItemControls +
       '<div style="display:flex;justify-content:flex-end;margin-top:1rem;padding-top:0.75rem;border-top:2px solid #f0f0f0">' +
         '<div style="text-align:right">' +
           '<div style="font-size:0.85rem;color:#718096">Total del pedido</div>' +
@@ -524,6 +540,7 @@ function renderOrderEditor(order) {
   // Guardar referencia a los items editables
   editor.dataset.orderId = order.id;
   editor.dataset.orderItems = JSON.stringify(items);
+  editor.dataset.orderData = JSON.stringify(order);
 }
 
 // Actualiza la cantidad de un item en el editor (recalcula total visual)
@@ -544,7 +561,100 @@ function updateOrderItemQty(orderId, idx, newQty) {
     var total = items.reduce(function (s, it) { return s + it.price * it.quantity; }, 0);
     var totalEl = document.getElementById('order-total-display-' + orderId);
     if (totalEl) totalEl.textContent = formatMoney(total);
+
+    persistOrderEditorState(items);
   }
+}
+
+function persistOrderEditorState(items) {
+  var editor = document.getElementById('order-editor');
+  if (!editor) return;
+
+  editor.dataset.orderItems = JSON.stringify(items);
+
+  var orderData = JSON.parse(editor.dataset.orderData || '{}');
+  orderData.items = items;
+  orderData.total = items.reduce(function (s, it) { return s + Number(it.price || 0) * (parseInt(it.quantity, 10) || 0); }, 0);
+  editor.dataset.orderData = JSON.stringify(orderData);
+}
+
+function rerenderOrderEditorWithItems(items) {
+  var editor = document.getElementById('order-editor');
+  if (!editor) return;
+  var orderData = JSON.parse(editor.dataset.orderData || '{}');
+  orderData.items = items;
+  orderData.total = items.reduce(function (s, it) { return s + Number(it.price || 0) * (parseInt(it.quantity, 10) || 0); }, 0);
+  renderOrderEditor(orderData);
+}
+
+function removeOrderItem(orderId, idx) {
+  var editor = document.getElementById('order-editor');
+  if (!editor) return;
+  var items = JSON.parse(editor.dataset.orderItems || '[]');
+  if (!items[idx]) return;
+
+  items.splice(idx, 1);
+  rerenderOrderEditorWithItems(items);
+}
+
+function buildOrderEditorFlavorOptions() {
+  var options = '<option value="">Seleccionar sabor...</option>';
+  for (var i = 0; i < orderEditorCatalog.length; i++) {
+    var flavor = orderEditorCatalog[i];
+    options += '<option value="' + safeAttr(flavor.id) + '">' +
+      safeText(flavor.name) + ' (' + formatMoney(flavor.price) + ', stock: ' + flavor.stock + ')' +
+      '</option>';
+  }
+  return options;
+}
+
+async function loadOrderEditorCatalog() {
+  var result = await supabaseClient
+    .from('flavors')
+    .select('id, name, price, stock, is_available')
+    .eq('is_available', true)
+    .order('name');
+
+  if (result.error) throw result.error;
+  orderEditorCatalog = result.data || [];
+}
+
+async function addOrderItemFromCatalog(orderId) {
+  var selectEl = document.getElementById('order-add-item-select-' + orderId);
+  var qtyEl = document.getElementById('order-add-item-qty-' + orderId);
+  var editor = document.getElementById('order-editor');
+  if (!selectEl || !qtyEl || !editor) return;
+
+  if (!selectEl.value) {
+    alert('Selecciona un sabor para agregar.');
+    return;
+  }
+
+  var qtyToAdd = Math.max(1, parseInt(qtyEl.value, 10) || 1);
+  var flavor = orderEditorCatalog.find(function (f) { return f.id === selectEl.value; });
+  if (!flavor) {
+    alert('No se encontró el sabor seleccionado.');
+    return;
+  }
+
+  var items = JSON.parse(editor.dataset.orderItems || '[]');
+  var existing = items.find(function (it) {
+    return (it.flavor_id && it.flavor_id === flavor.id) || (it.id && it.id === flavor.id) || it.name === flavor.name;
+  });
+
+  if (existing) {
+    existing.quantity = (parseInt(existing.quantity, 10) || 0) + qtyToAdd;
+  } else {
+    items.push({
+      flavor_id: flavor.id,
+      id: flavor.id,
+      name: flavor.name,
+      price: Number(flavor.price) || 0,
+      quantity: qtyToAdd
+    });
+  }
+
+  rerenderOrderEditorWithItems(items);
 }
 
 async function getAdminAccessToken() {
