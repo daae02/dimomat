@@ -7,6 +7,15 @@ var currentEditId = null;
 var manualOrderCatalog = [];
 var allAdminFlavors = [];
 var orderEditorCatalog = [];
+var allCategories = [];
+var currentEditCategoryId = null;
+var DEFAULT_CATEGORIES = [
+  { id: null, slug: 'clasico', name: 'Clásico',  emoji: '🧊' },
+  { id: null, slug: 'frutal',  name: 'Frutal',   emoji: '🍓' },
+  { id: null, slug: 'cremoso', name: 'Cremoso',  emoji: '🍦' },
+  { id: null, slug: 'picante', name: 'Picante',  emoji: '🌶️' },
+  { id: null, slug: 'especial',name: 'Especial', emoji: '⭐' }
+];
 
 function formatMoney(amount) {
   var value = normalizeAmount(amount);
@@ -106,6 +115,7 @@ function showDashboard(user) {
   document.getElementById('dashboard-section').style.display = 'block';
   var el = document.getElementById('admin-user-email');
   if (el) el.textContent = user.email;
+  loadCategories();
 }
 
 // ---- TABS ----
@@ -116,6 +126,7 @@ function switchTab(tabName, btn) {
   document.getElementById('tab-' + tabName).classList.add('active');
   btn.classList.add('active');
   if (tabName === 'ordenes') loadOrders();
+  if (tabName === 'categorias') loadCategories();
 }
 
 // ---- CRUD SABORES ----
@@ -168,6 +179,20 @@ function filterAdminFlavors() {
 
 var CAT_LABELS = { frutal: 'Frutal', cremoso: 'Cremoso', picante: 'Picante', especial: 'Especial', clasico: 'Clásico' };
 
+function getCatLabel(slug) {
+  for (var i = 0; i < allCategories.length; i++) {
+    if (allCategories[i].slug === slug) return allCategories[i].name;
+  }
+  return CAT_LABELS[slug] || slug;
+}
+
+function getCatEmoji(slug) {
+  for (var i = 0; i < allCategories.length; i++) {
+    if (allCategories[i].slug === slug) return allCategories[i].emoji || '';
+  }
+  return '';
+}
+
 function renderAdminTable(flavors) {
   var tbody = document.getElementById('flavors-tbody');
   if (!tbody) return;
@@ -187,7 +212,7 @@ function renderAdminTable(flavors) {
     html += '<tr>' +
       '<td>' + imgHtml + '</td>' +
       '<td><strong>' + safeText(f.name) + '</strong></td>' +
-      '<td><span class="category-badge cat-' + (f.category || 'clasico') + '">' + (CAT_LABELS[f.category] || f.category) + '</span></td>' +
+      '<td><span class="category-badge cat-' + (f.category || 'clasico') + '">' + getCatEmoji(f.category || 'clasico') + ' ' + getCatLabel(f.category || 'clasico') + '</span></td>' +
       '<td>' + formatMoney(parseFloat(f.price)) + '</td>' +
       '<td style="' + stockStyle + '">' + (f.stock || 0) + '</td>' +
       '<td><label class="toggle-available"><input type="checkbox" ' + (f.is_available ? 'checked' : '') + ' onchange="toggleAvailability(\'' + safeRowId + '\', this.checked)"><span class="toggle-slider"></span></label></td>' +
@@ -936,6 +961,161 @@ async function cancelOrder(orderId) {
   }
 }
 
+// ---- CATEGORIAS ----
+
+async function loadCategories() {
+  if (!supabaseClient) {
+    allCategories = DEFAULT_CATEGORIES;
+    populateCategorySelects();
+    renderCategoriesTable();
+    return;
+  }
+  try {
+    var result = await supabaseClient.from('categories').select('*').order('sort_order').order('name');
+    if (result.error) throw result.error;
+    allCategories = (result.data && result.data.length > 0) ? result.data : DEFAULT_CATEGORIES;
+  } catch (e) {
+    allCategories = DEFAULT_CATEGORIES;
+  }
+  populateCategorySelects();
+  renderCategoriesTable();
+}
+
+function populateCategorySelects() {
+  var selects = [
+    { el: document.getElementById('f-category'),       prefix: '' },
+    { el: document.getElementById('admin-cat-filter'), prefix: '<option value="">Todas las categorías</option>' }
+  ];
+  selects.forEach(function (s) {
+    if (!s.el) return;
+    var current = s.el.value;
+    s.el.innerHTML = s.prefix;
+    for (var i = 0; i < allCategories.length; i++) {
+      var c = allCategories[i];
+      s.el.innerHTML += '<option value="' + safeAttr(c.slug) + '">' + (c.emoji ? c.emoji + ' ' : '') + safeText(c.name) + '</option>';
+    }
+    if (current) s.el.value = current;
+  });
+}
+
+function renderCategoriesTable() {
+  var tbody = document.getElementById('categories-tbody');
+  if (!tbody) return;
+  if (allCategories.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;padding:2rem;color:#718096">No hay categorías. ¡Agrega la primera!</td></tr>';
+    return;
+  }
+  var html = '';
+  for (var i = 0; i < allCategories.length; i++) {
+    var c = allCategories[i];
+    html += '<tr>' +
+      '<td style="font-size:1.5rem;text-align:center">' + safeText(c.emoji || '—') + '</td>' +
+      '<td><strong>' + safeText(c.name) + '</strong></td>' +
+      '<td><code style="background:#F7FAFC;padding:0.2rem 0.5rem;border-radius:4px;font-size:0.85rem">' + safeText(c.slug) + '</code></td>' +
+      '<td>' +
+        (c.id
+          ? '<button class="action-btn" onclick="openEditCategoryModal(\'' + safeAttr(c.id) + '\')" title="Editar">✏️</button> ' +
+            '<button class="action-btn" onclick="confirmDeleteCategory(\'' + safeAttr(c.id) + '\', \'' + safeAttr(c.name) + '\', \'' + safeAttr(c.slug) + '\')" title="Eliminar">🗑️</button>'
+          : '<span style="font-size:0.8rem;color:#A0AEC0">Crea la tabla categories primero</span>') +
+      '</td>' +
+    '</tr>';
+  }
+  tbody.innerHTML = html;
+}
+
+function openAddCategoryModal() {
+  currentEditCategoryId = null;
+  document.getElementById('cat-modal-title').textContent = 'Nueva Categoría';
+  document.getElementById('cat-form').reset();
+  document.getElementById('cat-sort-order').value = allCategories.length + 1;
+  document.getElementById('cat-form-error').textContent = '';
+  document.getElementById('cat-save-btn').disabled = false;
+  document.getElementById('cat-save-btn').textContent = 'Guardar';
+  openCategoryModalEl();
+}
+
+function openEditCategoryModal(catId) {
+  var cat = null;
+  for (var i = 0; i < allCategories.length; i++) {
+    if (allCategories[i].id === catId) { cat = allCategories[i]; break; }
+  }
+  if (!cat) return;
+  currentEditCategoryId = catId;
+  document.getElementById('cat-modal-title').textContent = 'Editar Categoría';
+  document.getElementById('cat-name').value = cat.name || '';
+  document.getElementById('cat-slug').value = cat.slug || '';
+  document.getElementById('cat-emoji').value = cat.emoji || '';
+  document.getElementById('cat-sort-order').value = cat.sort_order || 0;
+  document.getElementById('cat-form-error').textContent = '';
+  document.getElementById('cat-save-btn').disabled = false;
+  document.getElementById('cat-save-btn').textContent = 'Guardar';
+  openCategoryModalEl();
+}
+
+function openCategoryModalEl() {
+  var overlay = document.getElementById('cat-modal-overlay');
+  if (overlay) overlay.classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+
+function closeCategoryModal() {
+  var overlay = document.getElementById('cat-modal-overlay');
+  if (overlay) overlay.classList.remove('open');
+  document.body.style.overflow = '';
+  currentEditCategoryId = null;
+}
+
+async function saveCategory() {
+  var name = document.getElementById('cat-name').value.trim();
+  var slug = document.getElementById('cat-slug').value.trim()
+    .toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
+  var emoji = document.getElementById('cat-emoji').value.trim();
+  var sortOrder = parseInt(document.getElementById('cat-sort-order').value, 10) || 0;
+  var errorEl = document.getElementById('cat-form-error');
+  var saveBtn = document.getElementById('cat-save-btn');
+
+  errorEl.textContent = '';
+  if (!name) { errorEl.textContent = 'El nombre es requerido.'; return; }
+  if (!slug)  { errorEl.textContent = 'El slug es requerido.'; return; }
+
+  saveBtn.disabled = true;
+  saveBtn.textContent = 'Guardando...';
+
+  try {
+    var data = { name: name, slug: slug, emoji: emoji || null, sort_order: sortOrder };
+    var result = currentEditCategoryId
+      ? await supabaseClient.from('categories').update(data).eq('id', currentEditCategoryId)
+      : await supabaseClient.from('categories').insert([data]);
+    if (result.error) throw result.error;
+    closeCategoryModal();
+    await loadCategories();
+    showToast(currentEditCategoryId ? '✓ Categoría actualizada' : '✓ Categoría creada');
+  } catch (error) {
+    errorEl.textContent = 'Error: ' + error.message;
+    saveBtn.disabled = false;
+    saveBtn.textContent = 'Guardar';
+  }
+}
+
+async function confirmDeleteCategory(id, name, slug) {
+  try {
+    var check = await supabaseClient.from('flavors').select('id', { count: 'exact' }).eq('category', slug);
+    if ((check.count || 0) > 0) {
+      alert('No se puede eliminar "' + name + '" porque ' + check.count + ' sabor(es) la usan.\nCambia su categoría primero.');
+      return;
+    }
+  } catch (e) { /* ignorar error del check */ }
+  if (!confirm('¿Eliminar la categoría "' + name + '"?\nEsta acción no se puede deshacer.')) return;
+  try {
+    var result = await supabaseClient.from('categories').delete().eq('id', id);
+    if (result.error) throw result.error;
+    await loadCategories();
+    showToast('Categoría eliminada');
+  } catch (error) {
+    alert('Error: ' + error.message);
+  }
+}
+
 // ---- UTILS ----
 
 function showToast(msg) {
@@ -966,6 +1146,7 @@ document.addEventListener('DOMContentLoaded', function () {
     if (e.key === 'Escape') {
       closeModal();
       closeManualOrderModal();
+      closeCategoryModal();
     }
   });
   var pwd = document.getElementById('login-password');
@@ -974,6 +1155,8 @@ document.addEventListener('DOMContentLoaded', function () {
   if (overlay) overlay.addEventListener('click', function (e) { if (e.target === this) closeModal(); });
   var manualOverlay = document.getElementById('manual-order-overlay');
   if (manualOverlay) manualOverlay.addEventListener('click', function (e) { if (e.target === this) closeManualOrderModal(); });
+  var catOverlay = document.getElementById('cat-modal-overlay');
+  if (catOverlay) catOverlay.addEventListener('click', function (e) { if (e.target === this) closeCategoryModal(); });
 
   // Buscar orden con Enter
   var searchInput = document.getElementById('order-search-input');

@@ -103,13 +103,8 @@
           aria-label="Buscar sabores"
         >
       </div>
-      <div class="filter-chips" role="group" aria-label="Filtrar por categoría">
+      <div id="filter-chips-container" class="filter-chips" role="group" aria-label="Filtrar por categoría">
         <button class="filter-chip active" data-cat="" onclick="selectFilterChip(this)">Todos</button>
-        <button class="filter-chip" data-cat="frutal" onclick="selectFilterChip(this)">🍓 Frutal</button>
-        <button class="filter-chip" data-cat="cremoso" onclick="selectFilterChip(this)">🍦 Cremoso</button>
-        <button class="filter-chip" data-cat="picante" onclick="selectFilterChip(this)">🌶️ Picante</button>
-        <button class="filter-chip" data-cat="especial" onclick="selectFilterChip(this)">⭐ Especial</button>
-        <button class="filter-chip" data-cat="clasico" onclick="selectFilterChip(this)">🧊 Clásico</button>
       </div>
     </div>
 
@@ -194,9 +189,11 @@
 
   <script>
     document.addEventListener('DOMContentLoaded', function () {
-      // Cargar catálogo desde Supabase
-      loadFlavors();
-      setInterval(function () { loadFlavors({ silent: true }); }, 15000);
+      // Cargar categorías primero, luego sabores
+      loadCategoriesForCatalog().then(function () {
+        loadFlavors();
+        setInterval(function () { loadFlavors({ silent: true }); }, 15000);
+      });
 
       // Inicializar badge y carrito desde localStorage
       updateCartBadge();

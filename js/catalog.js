@@ -23,6 +23,48 @@ var CATEGORY_EMOJI = {
   clasico: '🧊'
 };
 
+var allCatalogCategories = [];
+var DEFAULT_CATALOG_CATEGORIES = [
+  { slug: 'clasico', name: 'Clásico', emoji: '🧊' },
+  { slug: 'frutal',  name: 'Frutal',  emoji: '🍓' },
+  { slug: 'cremoso', name: 'Cremoso', emoji: '🍦' },
+  { slug: 'picante', name: 'Picante', emoji: '🌶️' },
+  { slug: 'especial',name: 'Especial',emoji: '⭐' }
+];
+
+async function loadCategoriesForCatalog() {
+  if (!supabaseClient) {
+    allCatalogCategories = DEFAULT_CATALOG_CATEGORIES;
+    renderFilterChips();
+    return;
+  }
+  try {
+    var result = await supabaseClient.from('categories').select('*').order('sort_order').order('name');
+    if (result.error) throw result.error;
+    allCatalogCategories = (result.data && result.data.length > 0) ? result.data : DEFAULT_CATALOG_CATEGORIES;
+  } catch (e) {
+    allCatalogCategories = DEFAULT_CATALOG_CATEGORIES;
+  }
+  for (var i = 0; i < allCatalogCategories.length; i++) {
+    CATEGORY_EMOJI[allCatalogCategories[i].slug] = allCatalogCategories[i].emoji || '🍦';
+  }
+  renderFilterChips();
+}
+
+function renderFilterChips() {
+  var container = document.getElementById('filter-chips-container');
+  if (!container) return;
+  var current = activeFilterCat;
+  var html = '<button class="filter-chip' + (current === '' ? ' active' : '') + '" data-cat="" onclick="selectFilterChip(this)">Todos</button>';
+  for (var i = 0; i < allCatalogCategories.length; i++) {
+    var c = allCatalogCategories[i];
+    var isActive = current === c.slug;
+    html += '<button class="filter-chip' + (isActive ? ' active' : '') + '" data-cat="' + escapeHtml(c.slug) + '" onclick="selectFilterChip(this)">' +
+      (c.emoji ? c.emoji + ' ' : '') + escapeHtml(c.name) + '</button>';
+  }
+  container.innerHTML = html;
+}
+
 var isLoadingFlavors = false;
 
 

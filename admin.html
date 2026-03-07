@@ -154,6 +154,7 @@
       <div class="admin-tabs">
         <button class="admin-tab active" onclick="switchTab('inventario', this)">📦 Inventario</button>
         <button class="admin-tab" onclick="switchTab('ordenes', this)">🛒 Órdenes</button>
+        <button class="admin-tab" onclick="switchTab('categorias', this)">🏷️ Categorías</button>
       </div>
 
       <!-- TAB: INVENTARIO -->
@@ -178,11 +179,6 @@
             </div>
             <select id="admin-cat-filter" class="admin-filter-select" onchange="filterAdminFlavors()" aria-label="Filtrar por categoría">
               <option value="">Todas las categorías</option>
-              <option value="clasico">Clásico</option>
-              <option value="frutal">🍓 Frutal</option>
-              <option value="cremoso">🍦 Cremoso</option>
-              <option value="picante">🌶️ Picante</option>
-              <option value="especial">⭐ Especial</option>
             </select>
             <select id="admin-stock-filter" class="admin-filter-select" onchange="filterAdminFlavors()" aria-label="Filtrar por stock">
               <option value="">Todo el stock</option>
@@ -204,6 +200,30 @@
               </tbody>
             </table>
           </div>
+        </div>
+      </div>
+
+      <!-- TAB: CATEGORIAS -->
+      <div id="tab-categorias" class="tab-panel">
+        <div class="table-container">
+          <div class="table-header">
+            <h2 style="font-family:'Pacifico',cursive;color:#FF6B6B;font-size:1.2rem;margin:0">🏷️ Categorías</h2>
+            <button class="btn-add-flavor" onclick="openAddCategoryModal()">+ Nueva Categoría</button>
+          </div>
+          <div style="overflow-x:auto">
+            <table class="admin-table">
+              <thead>
+                <tr><th>Emoji</th><th>Nombre</th><th>Slug</th><th>Acciones</th></tr>
+              </thead>
+              <tbody id="categories-tbody">
+                <tr><td colspan="4" style="text-align:center;padding:2rem;color:#718096">Cargando...</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <p style="font-size:0.82rem;color:#718096;padding:0.75rem 0 0">
+            El <strong>slug</strong> es el identificador único (ej: <code>frutal</code>) almacenado en los sabores.
+            No lo cambies si la categoría ya tiene sabores asignados.
+          </p>
         </div>
       </div>
 
@@ -276,11 +296,6 @@
           <div class="form-group">
             <label class="form-label" for="f-category">Categoría</label>
             <select id="f-category" class="form-input">
-              <option value="clasico">Clásico</option>
-              <option value="frutal">🍓 Frutal</option>
-              <option value="cremoso">🍦 Cremoso</option>
-              <option value="picante">🌶️ Picante</option>
-              <option value="especial">⭐ Especial</option>
             </select>
           </div>
           <div class="form-group" style="display:flex;align-items:center;gap:0.75rem">
@@ -343,6 +358,46 @@
       </div>
     </div>
   </div>
+  <!-- MODAL CATEGORÍA -->
+  <div id="cat-modal-overlay" class="modal-overlay" role="dialog" aria-modal="true">
+    <div class="modal" style="max-width:440px">
+      <div class="modal-header">
+        <h3 id="cat-modal-title" class="modal-title">Nueva Categoría</h3>
+        <button class="cart-close-btn" onclick="closeCategoryModal()" style="color:#718096">✕</button>
+      </div>
+      <div class="modal-body">
+        <form id="cat-form" onsubmit="event.preventDefault()">
+          <div class="form-group">
+            <label class="form-label" for="cat-name">Nombre <span style="color:#E53E3E">*</span></label>
+            <input id="cat-name" class="form-input" type="text" placeholder="Ej: Tropical" maxlength="50"
+              oninput="var s=document.getElementById('cat-slug');if(!s.dataset.edited)s.value=this.value.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/\s+/g,'-').replace(/[^a-z0-9-]/g,'')">
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem">
+            <div class="form-group">
+              <label class="form-label" for="cat-emoji">Emoji</label>
+              <input id="cat-emoji" class="form-input" type="text" placeholder="🍍" maxlength="10">
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="cat-sort-order">Orden</label>
+              <input id="cat-sort-order" class="form-input" type="number" min="0" step="1" value="0">
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="cat-slug">Slug <span style="color:#E53E3E">*</span></label>
+            <input id="cat-slug" class="form-input" type="text" placeholder="tropical" maxlength="50"
+              oninput="this.dataset.edited='1';this.value=this.value.toLowerCase().replace(/[^a-z0-9-]/g,'')">
+            <p style="font-size:0.78rem;color:#718096;margin:0.25rem 0 0">Identificador único: solo letras minúsculas, números y guiones. No lo cambies si ya tiene sabores asignados.</p>
+          </div>
+          <p id="cat-form-error" class="error-message" style="min-height:1.2em"></p>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-secondary" onclick="closeCategoryModal()">Cancelar</button>
+        <button id="cat-save-btn" class="btn-primary" onclick="saveCategory()" style="width:auto;padding:0.7rem 1.5rem">Guardar</button>
+      </div>
+    </div>
+  </div>
+
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="js/config.js?v=2"></script>
   <script src="js/supabase-client.js?v=2"></script>

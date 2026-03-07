@@ -119,6 +119,49 @@ CREATE POLICY "Authenticated delete bolis images"
   USING (bucket_id = 'bolis-images' AND auth.role() = 'authenticated');
 
 -- ================================================
+-- TABLA DE CATEGORIAS
+-- ================================================
+
+-- Primero eliminar el CHECK hardcodeado en flavors.category
+ALTER TABLE flavors DROP CONSTRAINT IF EXISTS flavors_category_check;
+
+CREATE TABLE IF NOT EXISTS categories (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  name VARCHAR(50) NOT NULL,
+  slug VARCHAR(50) NOT NULL UNIQUE,
+  emoji VARCHAR(10) DEFAULT '🍦',
+  sort_order INTEGER DEFAULT 0,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+ALTER TABLE categories ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Public read categories"
+  ON categories FOR SELECT USING (true);
+
+CREATE POLICY "Authenticated insert categories"
+  ON categories FOR INSERT
+  WITH CHECK (auth.role() = 'authenticated');
+
+CREATE POLICY "Authenticated update categories"
+  ON categories FOR UPDATE
+  USING (auth.role() = 'authenticated')
+  WITH CHECK (auth.role() = 'authenticated');
+
+CREATE POLICY "Authenticated delete categories"
+  ON categories FOR DELETE
+  USING (auth.role() = 'authenticated');
+
+-- Categorías por defecto
+INSERT INTO categories (name, slug, emoji, sort_order) VALUES
+  ('Clásico',  'clasico',  '🧊',  1),
+  ('Frutal',   'frutal',   '🍓',  2),
+  ('Cremoso',  'cremoso',  '🍦',  3),
+  ('Picante',  'picante',  '🌶️', 4),
+  ('Especial', 'especial', '⭐',  5)
+ON CONFLICT (slug) DO NOTHING;
+
+-- ================================================
 -- DATOS DE MUESTRA
 -- ================================================
 
