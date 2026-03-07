@@ -19,6 +19,7 @@
   </script>
 
   <link rel="stylesheet" href="css/style.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
 
   <style>
     /* Tabs del panel admin */
@@ -155,6 +156,7 @@
         <button class="admin-tab active" onclick="switchTab('inventario', this)">📦 Inventario</button>
         <button class="admin-tab" onclick="switchTab('ordenes', this)">🛒 Órdenes</button>
         <button class="admin-tab" onclick="switchTab('categorias', this)">🏷️ Categorías</button>
+        <button class="admin-tab" onclick="switchTab('analiticas', this)">📊 Analíticas</button>
       </div>
 
       <!-- TAB: INVENTARIO -->
@@ -199,6 +201,139 @@
                 <tr><td colspan="7" style="text-align:center;padding:2rem;color:#718096">Cargando...</td></tr>
               </tbody>
             </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- TAB: ANALITICAS -->
+      <div id="tab-analiticas" class="tab-panel">
+
+        <!-- Period selector -->
+        <div class="analytics-period-bar">
+          <div class="period-btns">
+            <button class="period-btn active" onclick="switchAnalyticsPeriod('hoy', this)">Hoy</button>
+            <button class="period-btn" onclick="switchAnalyticsPeriod('semana', this)">Esta semana</button>
+            <button class="period-btn" onclick="switchAnalyticsPeriod('mes', this)">Este mes</button>
+            <button class="period-btn" onclick="switchAnalyticsPeriod('anio', this)">Este año</button>
+            <button class="period-btn" onclick="switchAnalyticsPeriod('custom', this)">Personalizado</button>
+          </div>
+          <div id="analytics-custom-range" style="display:none;align-items:center;gap:0.5rem;flex-wrap:wrap">
+            <input type="date" id="analytics-from" class="admin-filter-select">
+            <span style="color:#718096;font-weight:700">—</span>
+            <input type="date" id="analytics-to" class="admin-filter-select">
+            <button class="btn-primary" onclick="applyCustomRange()" style="width:auto;padding:0.45rem 1rem;font-size:0.85rem">Aplicar</button>
+          </div>
+          <div class="analytics-live-badge">
+            <span class="live-dot"></span> EN VIVO &middot; <span id="analytics-last-updated">—</span>
+          </div>
+        </div>
+
+        <!-- Loading -->
+        <div id="analytics-loading" style="text-align:center;padding:3rem;color:#718096">
+          <div style="font-size:2.5rem;margin-bottom:0.5rem">📊</div>
+          <p style="font-weight:700;margin:0">Cargando analíticas...</p>
+        </div>
+
+        <!-- Content -->
+        <div id="analytics-content" style="display:none">
+
+          <!-- KPI Cards -->
+          <div class="analytics-kpi-grid">
+            <div class="kpi-card" style="border-left-color:#FF6B6B">
+              <div class="kpi-icon">💰</div>
+              <div class="kpi-value" id="kpi-revenue">—</div>
+              <div class="kpi-label">Ingresos (procesados)</div>
+              <div id="kpi-revenue-trend" class="kpi-trend-wrap"></div>
+            </div>
+            <div class="kpi-card" style="border-left-color:#4D96FF">
+              <div class="kpi-icon">📦</div>
+              <div class="kpi-value" id="kpi-orders">—</div>
+              <div class="kpi-label">Total pedidos</div>
+              <div id="kpi-orders-trend" class="kpi-trend-wrap"></div>
+            </div>
+            <div class="kpi-card" style="border-left-color:#6BCB77">
+              <div class="kpi-icon">✅</div>
+              <div class="kpi-value" id="kpi-completion">—</div>
+              <div class="kpi-label">Tasa de completación</div>
+              <div id="kpi-completion-trend" class="kpi-trend-wrap"></div>
+            </div>
+            <div class="kpi-card" style="border-left-color:#FFD93D">
+              <div class="kpi-icon">🎯</div>
+              <div class="kpi-value kpi-value-sm" id="kpi-avg-order">—</div>
+              <div class="kpi-label">Ticket promedio</div>
+              <div id="kpi-avg-order-trend" class="kpi-trend-wrap"></div>
+            </div>
+            <div class="kpi-card" style="border-left-color:#845EC2">
+              <div class="kpi-icon">🏆</div>
+              <div class="kpi-value kpi-value-sm" id="kpi-top-flavor">—</div>
+              <div class="kpi-label">Sabor estrella · % ingresos</div>
+              <div id="kpi-top-flavor-trend" class="kpi-trend-wrap"></div>
+            </div>
+            <div class="kpi-card" style="border-left-color:#F97316">
+              <div class="kpi-icon">📅</div>
+              <div class="kpi-value kpi-value-sm" id="kpi-projection">—</div>
+              <div class="kpi-label">Proyección fin de período</div>
+              <div id="kpi-projection-trend" class="kpi-trend-wrap"></div>
+            </div>
+          </div>
+
+          <!-- Smart insights -->
+          <div class="analytics-insights-box">
+            <div class="insights-header"><span>✨</span> <strong>Resumen inteligente</strong></div>
+            <div id="analytics-insights" class="insights-content"></div>
+          </div>
+
+          <!-- Charts -->
+          <div class="analytics-charts-grid">
+
+            <!-- Revenue + orders over time (wide) -->
+            <div class="chart-card chart-wide">
+              <div class="chart-card-header">
+                <div class="chart-card-title">📈 Ingresos y Pedidos</div>
+                <div class="chart-card-subtitle">Evolución temporal del negocio</div>
+              </div>
+              <div class="chart-canvas-wrap chart-canvas-tall">
+                <canvas id="chart-revenue"></canvas>
+                <div id="chart-revenue-empty" class="chart-empty" style="display:none">📭 Sin datos en este período</div>
+              </div>
+            </div>
+
+            <!-- Hourly rhythm -->
+            <div class="chart-card">
+              <div class="chart-card-header">
+                <div class="chart-card-title">⏰ Ritmo del día</div>
+                <div class="chart-card-subtitle">¿A qué hora te compran? — planifica tu producción</div>
+              </div>
+              <div class="chart-canvas-wrap">
+                <canvas id="chart-hourly-rhythm"></canvas>
+                <div id="chart-hourly-rhythm-empty" class="chart-empty" style="display:none">📭 Sin pedidos en este período</div>
+              </div>
+            </div>
+
+            <!-- Top flavors horizontal bar -->
+            <div class="chart-card">
+              <div class="chart-card-header">
+                <div class="chart-card-title">🏅 Top Sabores Vendidos</div>
+                <div class="chart-card-subtitle">Unidades (solo pedidos procesados)</div>
+              </div>
+              <div class="chart-canvas-wrap">
+                <canvas id="chart-top-flavors"></canvas>
+                <div id="chart-top-flavors-empty" class="chart-empty" style="display:none">📭 Sin ventas procesadas</div>
+              </div>
+            </div>
+
+            <!-- Processed vs cancelled stacked bar (wide) -->
+            <div class="chart-card chart-wide">
+              <div class="chart-card-header">
+                <div class="chart-card-title">📋 Procesados vs Cancelados</div>
+                <div class="chart-card-subtitle">Línea de tiempo de pedidos finalizados</div>
+              </div>
+              <div class="chart-canvas-wrap chart-canvas-tall">
+                <canvas id="chart-orders-timeline"></canvas>
+                <div id="chart-orders-timeline-empty" class="chart-empty" style="display:none">📭 Sin pedidos en este período</div>
+              </div>
+            </div>
+
           </div>
         </div>
       </div>

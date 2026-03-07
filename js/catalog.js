@@ -4,12 +4,12 @@
 // Requiere: supabase-client.js, cart.js cargados antes
 
 var SAMPLE_FLAVORS = [
-  { id: '1', name: 'Fresa Natural', description: 'Fresas frescas con leche condensada. Sabor auténtico y refrescante.', price: 20, stock: 50, category: 'frutal', is_available: true, image_url: null },
-  { id: '2', name: 'Mango Chamoy', description: 'Mango con chamoy especial y chile piquín. ¡Irresistible!', price: 25, stock: 30, category: 'picante', is_available: true, image_url: null },
-  { id: '3', name: 'Tamarindo Enchilado', description: 'Tamarindo con chile, sal y limón. El favorito de los atrevidos.', price: 20, stock: 40, category: 'picante', is_available: true, image_url: null },
-  { id: '4', name: 'Nuez y Cajeta', description: 'Cajeta artesanal de cabra con trozos de nuez. Sabor gourmet único.', price: 30, stock: 20, category: 'cremoso', is_available: true, image_url: null },
-  { id: '5', name: 'Horchata Canela', description: 'Horchata tradicional con canela molida. Cremoso y reconfortante.', price: 25, stock: 0, category: 'cremoso', is_available: false, image_url: null },
-  { id: '6', name: 'Limón con Chile', description: 'Limón fresco con chile piquín. Refrescante y picosito a la vez.', price: 20, stock: 35, category: 'picante', is_available: true, image_url: null }
+  { id: '1', name: 'Fresa Natural',       description: 'Fresas frescas con leche condensada. Sabor auténtico y refrescante.', price: 20, stock: 50, category: { slug: 'frutal',   name: 'Frutal',   emoji: '🍓' }, is_available: true,  image_url: null },
+  { id: '2', name: 'Mango Chamoy',        description: 'Mango con chamoy especial y chile piquín. ¡Irresistible!',             price: 25, stock: 30, category: { slug: 'picante',  name: 'Picante',  emoji: '🌶️' }, is_available: true,  image_url: null },
+  { id: '3', name: 'Tamarindo Enchilado', description: 'Tamarindo con chile, sal y limón. El favorito de los atrevidos.',       price: 20, stock: 40, category: { slug: 'picante',  name: 'Picante',  emoji: '🌶️' }, is_available: true,  image_url: null },
+  { id: '4', name: 'Nuez y Cajeta',       description: 'Cajeta artesanal de cabra con trozos de nuez. Sabor gourmet único.',   price: 30, stock: 20, category: { slug: 'cremoso',  name: 'Cremoso',  emoji: '🍦' }, is_available: true,  image_url: null },
+  { id: '5', name: 'Horchata Canela',     description: 'Horchata tradicional con canela molida. Cremoso y reconfortante.',      price: 25, stock: 0,  category: { slug: 'cremoso',  name: 'Cremoso',  emoji: '🍦' }, is_available: false, image_url: null },
+  { id: '6', name: 'Limón con Chile',     description: 'Limón fresco con chile piquín. Refrescante y picosito a la vez.',       price: 20, stock: 35, category: { slug: 'picante',  name: 'Picante',  emoji: '🌶️' }, is_available: true,  image_url: null }
 ];
 
 var allFlavors = [];
@@ -108,7 +108,7 @@ async function loadFlavors(options) {
   try {
     var result = await supabaseClient
       .from('flavors')
-      .select('*')
+      .select('*, category:categories(id,name,slug,emoji)')
       .eq('is_available', true)
       .order('name');
 
@@ -161,7 +161,8 @@ function renderCatalog(flavors) {
 function _updateFilterChips(flavors) {
   var cats = {};
   for (var i = 0; i < flavors.length; i++) {
-    if (flavors[i].category) cats[flavors[i].category] = true;
+    var slug = flavors[i].category && flavors[i].category.slug;
+    if (slug) cats[slug] = true;
   }
   document.querySelectorAll('.filter-chip[data-cat]').forEach(function (chip) {
     var cat = chip.getAttribute('data-cat');
@@ -189,7 +190,7 @@ function _renderFilteredCatalog(flavors) {
 function filterCatalog() {
   var query = (document.getElementById('catalog-search') ? document.getElementById('catalog-search').value : '').toLowerCase().trim();
   var filtered = allFlavors.filter(function (f) {
-    var matchCat = !activeFilterCat || f.category === activeFilterCat;
+    var matchCat = !activeFilterCat || (f.category && f.category.slug) === activeFilterCat;
     var matchName = !query ||
       (f.name || '').toLowerCase().indexOf(query) !== -1 ||
       (f.description || '').toLowerCase().indexOf(query) !== -1;
@@ -216,7 +217,8 @@ function getCartQtyForId(id) {
 function renderFlavorCard(flavor) {
   var isOutOfStock = flavor.stock === 0;
   var isLowStock = flavor.stock > 0 && flavor.stock <= 5;
-  var emoji = CATEGORY_EMOJI[flavor.category] || '🧊';
+  var catSlug = (flavor.category && flavor.category.slug) || '';
+  var emoji = (flavor.category && flavor.category.emoji) || CATEGORY_EMOJI[catSlug] || '🍦';
   var price = formatColones(parseFloat(flavor.price));
 
   var stockBadge = isOutOfStock
@@ -227,7 +229,7 @@ function renderFlavorCard(flavor) {
 
   var emojiFallback = '<span style="font-size:3.5rem">' + emoji + '</span>';
   var imgHtml = flavor.image_url
-    ? '<img src="' + escapeHtml(flavor.image_url) + '" alt="' + escapeHtml(flavor.name) + '" data-cat="' + escapeHtml(flavor.category) + '" loading="lazy" style="width:100%;height:100%;object-fit:cover" onerror="_cardImgFallback(this)">'
+    ? '<img src="' + escapeHtml(flavor.image_url) + '" alt="' + escapeHtml(flavor.name) + '" data-cat="' + escapeHtml(catSlug) + '" loading="lazy" style="width:100%;height:100%;object-fit:cover" onerror="_cardImgFallback(this)">'
     : emojiFallback;
 
   var safeName = escapeHtml(flavor.name);

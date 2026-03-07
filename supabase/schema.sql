@@ -122,7 +122,7 @@ CREATE POLICY "Authenticated delete bolis images"
 -- TABLA DE CATEGORIAS
 -- ================================================
 
--- Primero eliminar el CHECK hardcodeado en flavors.category
+-- Eliminar el CHECK hardcodeado en flavors.category si existe
 ALTER TABLE flavors DROP CONSTRAINT IF EXISTS flavors_category_check;
 
 CREATE TABLE IF NOT EXISTS categories (
@@ -162,15 +162,34 @@ INSERT INTO categories (name, slug, emoji, sort_order) VALUES
 ON CONFLICT (slug) DO NOTHING;
 
 -- ================================================
+-- MIGRACIÓN: flavors.category (slug) → category_id (FK)
+-- ================================================
+
+-- Agregar columna FK (si ya existe, no hace nada)
+ALTER TABLE flavors
+  ADD COLUMN IF NOT EXISTS category_id UUID
+  REFERENCES categories(id) ON UPDATE CASCADE ON DELETE SET NULL;
+
+-- Rellenar category_id desde el slug de category (solo filas donde category_id está vacío)
+UPDATE flavors f
+SET category_id = c.id
+FROM categories c
+WHERE c.slug = f.category
+  AND f.category_id IS NULL;
+
+-- Eliminar columna antigua de slug (una vez migrados los datos)
+ALTER TABLE flavors DROP COLUMN IF EXISTS category;
+
+-- ================================================
 -- DATOS DE MUESTRA
 -- ================================================
 
-INSERT INTO flavors (name, description, price, stock, category, is_available) VALUES
-  ('Fresa Natural', 'Deliciosas fresas frescas de temporada con un toque de leche condensada. Sabor auténtico y refrescante.', 20.00, 50, 'frutal', true),
-  ('Mango Chamoy', 'Mango natural del Valle de México con nuestro chamoy especial y chile piquín. ¡Irresistible!', 25.00, 30, 'picante', true),
-  ('Tamarindo Enchilado', 'Tamarindo auténtico con mezcla especial de chile, sal y limón. El favorito de los atrevidos.', 20.00, 40, 'picante', true),
-  ('Nuez y Cajeta', 'Cremoso de cajeta artesanal de cabra con generosos trozos de nuez. Sabor gourmet único.', 30.00, 20, 'cremoso', true),
-  ('Limón con Chile', 'Explosión de limón fresco con chile piquín. Refrescante y picosito a la vez.', 20.00, 35, 'picante', true),
-  ('Horchata Canela', 'Horchata tradicional con canela molida. Cremoso, dulce y reconfortante.', 25.00, 25, 'cremoso', true),
-  ('Guanábana Cremosa', 'Pulpa natural de guanábana con crema. Exótico, tropical y delicioso.', 28.00, 15, 'frutal', true),
-  ('Oreo y Crema', 'Galletas Oreo trituradas con crema batida. El favorito de niños y adultos.', 30.00, 0, 'cremoso', false);
+INSERT INTO flavors (name, description, price, stock, category_id, is_available) VALUES
+  ('Fresa Natural',       'Deliciosas fresas frescas de temporada con un toque de leche condensada. Sabor auténtico y refrescante.',    20.00, 50, (SELECT id FROM categories WHERE slug = 'frutal'),   true),
+  ('Mango Chamoy',        'Mango natural del Valle de México con nuestro chamoy especial y chile piquín. ¡Irresistible!',               25.00, 30, (SELECT id FROM categories WHERE slug = 'picante'),  true),
+  ('Tamarindo Enchilado', 'Tamarindo auténtico con mezcla especial de chile, sal y limón. El favorito de los atrevidos.',               20.00, 40, (SELECT id FROM categories WHERE slug = 'picante'),  true),
+  ('Nuez y Cajeta',       'Cremoso de cajeta artesanal de cabra con generosos trozos de nuez. Sabor gourmet único.',                    30.00, 20, (SELECT id FROM categories WHERE slug = 'cremoso'),  true),
+  ('Limón con Chile',     'Explosión de limón fresco con chile piquín. Refrescante y picosito a la vez.',                               20.00, 35, (SELECT id FROM categories WHERE slug = 'picante'),  true),
+  ('Horchata Canela',     'Horchata tradicional con canela molida. Cremoso, dulce y reconfortante.',                                    25.00, 25, (SELECT id FROM categories WHERE slug = 'cremoso'),  true),
+  ('Guanábana Cremosa',   'Pulpa natural de guanábana con crema. Exótico, tropical y delicioso.',                                       28.00, 15, (SELECT id FROM categories WHERE slug = 'frutal'),   true),
+  ('Oreo y Crema',        'Galletas Oreo trituradas con crema batida. El favorito de niños y adultos.',                                 30.00,  0, (SELECT id FROM categories WHERE slug = 'cremoso'),  false);

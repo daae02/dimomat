@@ -116,6 +116,7 @@ function showDashboard(user) {
   var el = document.getElementById('admin-user-email');
   if (el) el.textContent = user.email;
   loadCategories();
+  subscribeAnalyticsRealtime();
 }
 
 // ---- TABS ----
@@ -127,6 +128,7 @@ function switchTab(tabName, btn) {
   btn.classList.add('active');
   if (tabName === 'ordenes') loadOrders();
   if (tabName === 'categorias') loadCategories();
+  if (tabName === 'analiticas') renderAnalytics();
 }
 
 // ---- CRUD SABORES ----
@@ -136,7 +138,7 @@ async function loadAdminFlavors() {
   if (!tbody) return;
   tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:2rem;color:#718096">Cargando inventario...</td></tr>';
   try {
-    var result = await supabaseClient.from('flavors').select('*').order('created_at', { ascending: false });
+    var result = await supabaseClient.from('flavors').select('*, category:categories(id,name,slug,emoji)').order('created_at', { ascending: false });
     if (result.error) throw result.error;
     allAdminFlavors = result.data || [];
     renderAdminTable(allAdminFlavors);
@@ -167,7 +169,7 @@ function filterAdminFlavors() {
   var stock = document.getElementById('admin-stock-filter') ? document.getElementById('admin-stock-filter').value : '';
   var filtered = allAdminFlavors.filter(function (f) {
     var matchName = !query || (f.name || '').toLowerCase().indexOf(query) !== -1;
-    var matchCat = !cat || f.category === cat;
+    var matchCat = !cat || (f.category && f.category.id === cat);
     var matchStock = !stock ||
       (stock === 'available' && f.is_available && f.stock > 0) ||
       (stock === 'low' && f.stock > 0 && f.stock <= 5) ||
@@ -212,7 +214,7 @@ function renderAdminTable(flavors) {
     html += '<tr>' +
       '<td>' + imgHtml + '</td>' +
       '<td><strong>' + safeText(f.name) + '</strong></td>' +
-      '<td><span class="category-badge cat-' + (f.category || 'clasico') + '">' + getCatEmoji(f.category || 'clasico') + ' ' + getCatLabel(f.category || 'clasico') + '</span></td>' +
+      '<td><span class="category-badge cat-' + safeAttr((f.category && f.category.slug) || '') + '">' + safeText((f.category && f.category.emoji) || '') + ' ' + safeText((f.category && f.category.name) || 'Sin categoría') + '</span></td>' +
       '<td>' + formatMoney(parseFloat(f.price)) + '</td>' +
       '<td style="' + stockStyle + '">' + (f.stock || 0) + '</td>' +
       '<td><label class="toggle-available"><input type="checkbox" ' + (f.is_available ? 'checked' : '') + ' onchange="toggleAvailability(\'' + safeRowId + '\', this.checked)"><span class="toggle-slider"></span></label></td>' +
@@ -249,7 +251,7 @@ async function saveFlavor() {
     var imageUrl = currentImageUrl;
     if (imageFile) imageUrl = await uploadImage(imageFile);
 
-    var data = { name: name, description: desc, price: price, stock: stock, category: category, is_available: isAvailable, image_url: imageUrl || null };
+    var data = { name: name, description: desc, price: price, stock: stock, category_id: category || null, is_available: isAvailable, image_url: imageUrl || null };
     var result = currentEditId
       ? await supabaseClient.from('flavors').update(data).eq('id', currentEditId)
       : await supabaseClient.from('flavors').insert([data]);
@@ -302,7 +304,7 @@ function openAddModal() {
 // Abre el modal de edición buscando el sabor por ID (evita JSON en onclick)
 async function openEditModalById(flavorId) {
   try {
-    var result = await supabaseClient.from('flavors').select('*').eq('id', flavorId).single();
+    var result = await supabaseClient.from('flavors').select('*, category:categories(id,name,slug,emoji)').eq('id', flavorId).single();
     if (result.error) throw result.error;
     openEditModal(result.data);
   } catch (error) {
@@ -317,7 +319,7 @@ function openEditModal(flavor) {
   document.getElementById('f-description').value = flavor.description || '';
   document.getElementById('f-price').value = flavor.price || '';
   document.getElementById('f-stock').value = flavor.stock !== undefined ? flavor.stock : 0;
-  document.getElementById('f-category').value = flavor.category || 'clasico';
+  document.getElementById('f-category').value = (flavor.category && flavor.category.id) || '';
   document.getElementById('f-available').checked = flavor.is_available !== false;
   document.getElementById('f-current-image').value = flavor.image_url || '';
   document.getElementById('form-error').textContent = '';
@@ -961,6 +963,612 @@ async function cancelOrder(orderId) {
   }
 }
 
+// ================================================
+// ANALÍTICAS v2 — orientado a PYME
+// ================================================
+
+var analyticsCurrentPeriod = 'hoy';
+var analyticsCustomFrom = '';
+var analyticsCustomTo = '';
+var analyticsCharts = {};
+var analyticsRealtimeSub = null;
+var analyticsIsLoading = false;
+
+// ---- Period & range ----
+
+function switchAnalyticsPeriod(period, btn) {
+  analyticsCurrentPeriod = period;
+  document.querySelectorAll('.period-btn').forEach(function (b) { b.classList.remove('active'); });
+  btn.classList.add('active');
+  var customEl = document.getElementById('analytics-custom-range');
+  if (customEl) customEl.style.display = period === 'custom' ? 'flex' : 'none';
+  if (period !== 'custom') renderAnalytics();
+}
+
+function applyCustomRange() {
+  var f = document.getElementById('analytics-from');
+  var t = document.getElementById('analytics-to');
+  if (!f || !t || !f.value || !t.value) { alert('Selecciona ambas fechas.'); return; }
+  analyticsCustomFrom = f.value;
+  analyticsCustomTo = t.value;
+  renderAnalytics();
+}
+
+function getAnalyticsRange() {
+  var now = new Date();
+  switch (analyticsCurrentPeriod) {
+    case 'hoy':
+      return { from: new Date(now.getFullYear(), now.getMonth(), now.getDate()), to: new Date() };
+    case 'semana': {
+      var dow = now.getDay();
+      var daysBack = dow === 0 ? 6 : dow - 1;
+      return { from: new Date(now.getFullYear(), now.getMonth(), now.getDate() - daysBack), to: new Date() };
+    }
+    case 'mes':
+      return { from: new Date(now.getFullYear(), now.getMonth(), 1), to: new Date() };
+    case 'anio':
+      return { from: new Date(now.getFullYear(), 0, 1), to: new Date() };
+    case 'custom': {
+      var cf = analyticsCustomFrom ? new Date(analyticsCustomFrom + 'T00:00:00') : new Date(now.getFullYear(), now.getMonth(), 1);
+      var ct = analyticsCustomTo ? new Date(analyticsCustomTo + 'T23:59:59') : new Date();
+      return { from: cf, to: ct };
+    }
+    default:
+      return { from: new Date(now.getFullYear(), now.getMonth(), now.getDate()), to: new Date() };
+  }
+}
+
+function getGranularity(period, range) {
+  if (period === 'hoy') return 'hour';
+  if (period === 'semana' || period === 'mes') return 'day';
+  if (period === 'anio') return 'month';
+  var days = (range.to - range.from) / 86400000;
+  if (days <= 2) return 'hour';
+  if (days <= 90) return 'day';
+  return 'month';
+}
+
+function getBucketKey(date, gran) {
+  var y = date.getFullYear();
+  var m = String(date.getMonth() + 1).padStart(2, '0');
+  var d = String(date.getDate()).padStart(2, '0');
+  var h = String(date.getHours()).padStart(2, '0');
+  if (gran === 'hour') return y + '-' + m + '-' + d + 'T' + h;
+  if (gran === 'day')  return y + '-' + m + '-' + d;
+  return y + '-' + m;
+}
+
+function buildBuckets(range, gran) {
+  var labels = [], keys = [];
+  var now = new Date();
+  var MONTHS = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+  var DAYS   = ['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];
+
+  if (gran === 'hour') {
+    var baseDay = new Date(range.from.getFullYear(), range.from.getMonth(), range.from.getDate());
+    var maxH = (now.toDateString() === baseDay.toDateString()) ? now.getHours() : 23;
+    for (var h = 0; h <= maxH; h++) {
+      labels.push(h + ':00');
+      keys.push(getBucketKey(new Date(baseDay.getTime() + h * 3600000), 'hour'));
+    }
+  } else if (gran === 'day') {
+    var cur = new Date(range.from.getFullYear(), range.from.getMonth(), range.from.getDate());
+    var end = new Date(Math.min(range.to.getTime(), now.getTime()));
+    while (cur <= end) {
+      labels.push(analyticsCurrentPeriod === 'semana'
+        ? DAYS[cur.getDay()] + ' ' + cur.getDate()
+        : cur.getDate() + '/' + (cur.getMonth() + 1));
+      keys.push(getBucketKey(cur, 'day'));
+      cur = new Date(cur.getTime() + 86400000);
+    }
+  } else {
+    var startM = range.from.getMonth();
+    var endM = Math.min(range.to.getMonth(), now.getMonth());
+    var yr = range.from.getFullYear();
+    for (var mo = startM; mo <= endM; mo++) {
+      labels.push(MONTHS[mo]);
+      keys.push(yr + '-' + String(mo + 1).padStart(2, '0'));
+    }
+  }
+  return { labels: labels, keys: keys };
+}
+
+// ---- Data fetch & processing ----
+
+function getPrevRange(range) {
+  var duration = range.to - range.from;
+  return { from: new Date(range.from - duration), to: new Date(range.from) };
+}
+
+async function loadAnalyticsData() {
+  var range = getAnalyticsRange();
+  var prev  = getPrevRange(range);
+
+  var [curRes, prevRes] = await Promise.all([
+    supabaseClient.from('orders').select('*')
+      .gte('created_at', range.from.toISOString())
+      .lte('created_at', range.to.toISOString())
+      .order('created_at'),
+    supabaseClient.from('orders').select('total,status,created_at,items')
+      .gte('created_at', prev.from.toISOString())
+      .lt('created_at',  prev.to.toISOString())
+  ]);
+
+  if (curRes.error) throw curRes.error;
+  return { orders: curRes.data || [], prevOrders: prevRes.data || [], range: range };
+}
+
+function processAnalyticsData(orders, prevOrders, range) {
+  var processed = orders.filter(function (o) { return o.status === 'processed'; });
+  var cancelled = orders.filter(function (o) { return o.status === 'cancelled'; });
+  var revenue  = processed.reduce(function (s, o) { return s + parseFloat(o.total || 0); }, 0);
+  var avgOrder = processed.length > 0 ? revenue / processed.length : 0;
+
+  // ---- Previous period ----
+  var prevProcessed = prevOrders.filter(function (o) { return o.status === 'processed'; });
+  var prevRevenue   = prevProcessed.reduce(function (s, o) { return s + parseFloat(o.total || 0); }, 0);
+  var prevTotal     = prevOrders.length;
+  var prevCompletion= prevTotal > 0 ? (prevProcessed.length / prevTotal) * 100 : null;
+
+  // ---- Status counts ----
+  var statusCounts = {};
+  orders.forEach(function (o) { statusCounts[o.status] = (statusCounts[o.status] || 0) + 1; });
+
+  // ---- Timeline buckets ----
+  var gran = getGranularity(analyticsCurrentPeriod, range);
+  var buckets = buildBuckets(range, gran);
+  var revBucket = {}, procBucket = {}, cancBucket = {}, totalBucket = {};
+  buckets.keys.forEach(function (k) { revBucket[k] = procBucket[k] = cancBucket[k] = totalBucket[k] = 0; });
+  orders.forEach(function (o) {
+    var k = getBucketKey(new Date(o.created_at), gran);
+    if (totalBucket[k] !== undefined) {
+      totalBucket[k]++;
+      if (o.status === 'processed') { procBucket[k]++; revBucket[k] += parseFloat(o.total || 0); }
+      if (o.status === 'cancelled')   cancBucket[k]++;
+    }
+  });
+
+  // ---- Hourly distribution (all orders, hour of day 0-23) ----
+  var hourlyDist = new Array(24).fill(0);
+  orders.forEach(function (o) {
+    var h = new Date(o.created_at).getHours();
+    hourlyDist[h]++;
+  });
+  var peakHour = hourlyDist.indexOf(Math.max.apply(null, hourlyDist));
+
+  // ---- Top flavors + revenue % ----
+  var flavorQty = {}, flavorRev = {};
+  processed.forEach(function (o) {
+    (o.items || []).forEach(function (item) {
+      var n = item.name || '?';
+      var qty = parseInt(item.quantity, 10) || 0;
+      var rev = parseFloat(item.price || 0) * qty;
+      flavorQty[n] = (flavorQty[n] || 0) + qty;
+      flavorRev[n] = (flavorRev[n] || 0) + rev;
+    });
+  });
+  var topFlavors = Object.keys(flavorQty)
+    .map(function (n) { return { name: n, qty: flavorQty[n], rev: flavorRev[n] || 0 }; })
+    .sort(function (a, b) { return b.qty - a.qty; })
+    .slice(0, 8);
+  var topFlavor = topFlavors[0] || null;
+  var topFlavorRevPct = (topFlavor && revenue > 0)
+    ? Math.round((topFlavor.rev / revenue) * 100) : 0;
+
+  // ---- Projection ----
+  var projection = null;
+  if (analyticsCurrentPeriod === 'mes' || analyticsCurrentPeriod === 'anio') {
+    var now = new Date();
+    var daysPassed = Math.max(1, (now - range.from) / 86400000);
+    var totalDays = analyticsCurrentPeriod === 'mes'
+      ? new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate()
+      : 365;
+    projection = (revenue / daysPassed) * totalDays;
+  }
+
+  // ---- Peak label ----
+  var peakBucketLabel = null, peakBucketCount = 0;
+  buckets.keys.forEach(function (k, i) {
+    if (totalBucket[k] > peakBucketCount) { peakBucketCount = totalBucket[k]; peakBucketLabel = buckets.labels[i]; }
+  });
+
+  return {
+    revenue: revenue, avgOrder: avgOrder, prevRevenue: prevRevenue,
+    totalOrders: orders.length, prevTotal: prevTotal,
+    processedCount: processed.length, cancelledCount: cancelled.length,
+    prevCompletion: prevCompletion,
+    statusCounts: statusCounts,
+    buckets: buckets, gran: gran,
+    revBucket: revBucket, procBucket: procBucket, cancBucket: cancBucket, totalBucket: totalBucket,
+    hourlyDist: hourlyDist, peakHour: peakHour,
+    topFlavors: topFlavors, topFlavor: topFlavor, topFlavorRevPct: topFlavorRevPct,
+    projection: projection,
+    peakBucketLabel: peakBucketLabel, peakBucketCount: peakBucketCount
+  };
+}
+
+// ---- Render orchestrator ----
+
+async function renderAnalytics() {
+  if (analyticsIsLoading) return;
+  analyticsIsLoading = true;
+
+  var loadingEl = document.getElementById('analytics-loading');
+  var contentEl = document.getElementById('analytics-content');
+  if (loadingEl) { loadingEl.style.display = 'block'; }
+  if (contentEl) { contentEl.style.display = 'none'; }
+
+  try {
+    var res = await loadAnalyticsData();
+    var data = processAnalyticsData(res.orders, res.prevOrders, res.range);
+
+    renderAnalyticsKPIs(data);
+    renderAnalyticsInsights(data);
+    renderChartRevenue(data);
+    renderChartHourlyRhythm(data);
+    renderChartTopFlavors(data);
+    renderChartOrdersTimeline(data);
+
+    var updEl = document.getElementById('analytics-last-updated');
+    if (updEl) updEl.textContent = new Date().toLocaleTimeString('es-CR', { hour: '2-digit', minute: '2-digit' });
+
+    if (loadingEl) loadingEl.style.display = 'none';
+    if (contentEl) contentEl.style.display = 'block';
+  } catch (err) {
+    if (loadingEl) loadingEl.innerHTML = '<p style="color:#E53E3E;font-weight:700">Error: ' + err.message + '</p>';
+  } finally {
+    analyticsIsLoading = false;
+  }
+}
+
+// ---- KPIs ----
+
+function trendBadge(current, prev) {
+  if (prev === null || prev === undefined) return '';
+  if (prev === 0) return current > 0 ? '<span class="trend-up">↑ Nuevo</span>' : '';
+  var pct = Math.round(((current - prev) / prev) * 100);
+  if (pct > 0)  return '<span class="trend-up">↑ ' + pct + '%</span>';
+  if (pct < 0)  return '<span class="trend-down">↓ ' + Math.abs(pct) + '%</span>';
+  return '<span class="trend-neutral">= Sin cambio</span>';
+}
+
+function setKpi(id, value, badge) {
+  var valEl = document.getElementById(id);
+  if (valEl) valEl.textContent = value;
+  var badgeEl = document.getElementById(id + '-trend');
+  if (badgeEl) badgeEl.innerHTML = badge || '';
+}
+
+function renderAnalyticsKPIs(data) {
+  var completion = data.totalOrders > 0 ? Math.round((data.processedCount / data.totalOrders) * 100) : 0;
+  var prevCompletion = data.prevCompletion !== null ? data.prevCompletion : null;
+
+  setKpi('kpi-revenue',    formatMoney(data.revenue),   trendBadge(data.revenue, data.prevRevenue));
+  setKpi('kpi-orders',     data.totalOrders,             trendBadge(data.totalOrders, data.prevTotal));
+  setKpi('kpi-completion', completion + '%',             trendBadge(completion, prevCompletion));
+  setKpi('kpi-avg-order',  data.processedCount > 0 ? formatMoney(data.avgOrder) : '—', '');
+  setKpi('kpi-top-flavor', data.topFlavor
+    ? data.topFlavor.name + (data.topFlavorRevPct ? ' · ' + data.topFlavorRevPct + '%' : '')
+    : '—', '');
+  setKpi('kpi-projection', data.projection ? formatMoney(data.projection) : '—', '');
+
+  var compEl = document.getElementById('kpi-completion');
+  if (compEl) compEl.style.color = completion >= 70 ? '#276749' : completion >= 40 ? '#D97706' : '#E53E3E';
+}
+
+// ---- Insights ----
+
+function renderAnalyticsInsights(data) {
+  var el = document.getElementById('analytics-insights');
+  if (!el) return;
+  el.innerHTML = generateInsights(data).map(function (t) {
+    return '<p class="insight-line">' + t + '</p>';
+  }).join('');
+}
+
+function generateInsights(data) {
+  var lines = [];
+  var completion = data.totalOrders > 0 ? Math.round((data.processedCount / data.totalOrders) * 100) : 0;
+  var ES_HOURS = ['12am','1am','2am','3am','4am','5am','6am','7am','8am','9am','10am','11am',
+                  '12pm','1pm','2pm','3pm','4pm','5pm','6pm','7pm','8pm','9pm','10pm','11pm'];
+
+  if (data.totalOrders === 0) {
+    lines.push('📭 Sin pedidos en este período. Si acabas de abrir, ¡el primero es el más especial!');
+    return lines;
+  }
+
+  // Revenue headline with trend
+  if (data.revenue > 0) {
+    var revenueLine = '💰 Generaste <strong>' + formatMoney(data.revenue) + '</strong> con <strong>' + data.processedCount + '</strong> pedido(s) completado(s).';
+    if (data.prevRevenue > 0) {
+      var revDiff = Math.round(((data.revenue - data.prevRevenue) / data.prevRevenue) * 100);
+      revenueLine += revDiff > 0
+        ? ' <span class="insight-tag tag-up">↑ ' + revDiff + '% vs período anterior</span>'
+        : revDiff < 0
+        ? ' <span class="insight-tag tag-down">↓ ' + Math.abs(revDiff) + '% vs período anterior</span>'
+        : ' <span class="insight-tag tag-neutral">= igual que el período anterior</span>';
+    }
+    lines.push(revenueLine);
+  } else {
+    lines.push('📦 Hay <strong>' + data.totalOrders + '</strong> pedido(s) sin procesar aún. Procésalos para registrar ingresos.');
+  }
+
+  // Projection (only for mes/anio)
+  if (data.projection && data.projection > data.revenue) {
+    var periodName = analyticsCurrentPeriod === 'mes' ? 'este mes' : 'este año';
+    lines.push('📈 Al ritmo actual, terminarás <strong>' + periodName + '</strong> con aproximadamente <strong>' + formatMoney(data.projection) + '</strong>.');
+  }
+
+  // Top flavor with revenue %
+  if (data.topFlavor) {
+    var flavorLine = '🏆 <strong>' + data.topFlavor.name + '</strong> fue tu sabor estrella: <strong>' + data.topFlavor.qty + '</strong> unidad(es)';
+    if (data.topFlavorRevPct > 0) flavorLine += ', el <strong>' + data.topFlavorRevPct + '%</strong> de tus ingresos';
+    lines.push(flavorLine + '.');
+  }
+
+  // Peak hour (actionable for a bolis seller)
+  var peakOrders = data.hourlyDist[data.peakHour];
+  if (peakOrders > 0) {
+    lines.push('⏰ Tu hora pico es las <strong>' + ES_HOURS[data.peakHour] + '</strong>. Ten el producto listo y WhatsApp activo en ese momento.');
+  }
+
+  // Completion + pending alert
+  var pending = (data.statusCounts['pending'] || 0) + (data.statusCounts['confirmed'] || 0);
+  if (pending > 0) {
+    lines.push('🔔 Tienes <strong>' + pending + '</strong> pedido(s) pendiente(s) — ve a la pestaña Órdenes para procesarlos.');
+  } else if (completion === 100) {
+    lines.push('✨ ¡Todo al día! El 100% de los pedidos fue procesado.');
+  } else if (data.cancelledCount > 0) {
+    lines.push('⚠️ <strong>' + data.cancelledCount + '</strong> pedido(s) cancelado(s). Tasa de completación: <strong>' + completion + '%</strong>.');
+  }
+
+  return lines;
+}
+
+// ---- Charts ----
+
+var C = {
+  coral: '#FF6B6B', coralBg: 'rgba(255,107,107,0.18)',
+  lima:  '#6BCB77', limaBg:  'rgba(107,203,119,0.75)',
+  mango: '#FFD93D',
+  blue:  '#4D96FF', blueBg:  'rgba(77,150,255,0.15)',
+  purple:'#845EC2',
+  cancelBg: 'rgba(255,107,107,0.75)',
+  palette: ['#FF6B6B','#4D96FF','#6BCB77','#FFD93D','#845EC2','#F97316','#14B8A6','#EC4899']
+};
+var FONT = "'Nunito', sans-serif";
+
+function freshCanvas(id) {
+  destroyAnalyticsChart(id);
+  var old = document.getElementById(id);
+  if (!old) return null;
+  var wrap = old.parentNode;
+  old.remove();
+  var c = document.createElement('canvas');
+  c.id = id;
+  wrap.insertBefore(c, wrap.firstChild);
+  return c;
+}
+
+function destroyAnalyticsChart(id) {
+  if (analyticsCharts[id]) { analyticsCharts[id].destroy(); delete analyticsCharts[id]; }
+}
+
+function showChartEmpty(id, show) {
+  var el = document.getElementById(id + '-empty');
+  var canvas = document.getElementById(id);
+  if (el) el.style.display = show ? 'flex' : 'none';
+  if (canvas) canvas.style.display = show ? 'none' : 'block';
+}
+
+function renderChartRevenue(data) {
+  var hasData = data.totalOrders > 0;
+  showChartEmpty('chart-revenue', !hasData);
+  if (!hasData) return;
+  var ctx = freshCanvas('chart-revenue');
+  if (!ctx) return;
+
+  analyticsCharts['revenue'] = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: data.buckets.labels,
+      datasets: [
+        {
+          label: 'Ingresos (₡)',
+          data: data.buckets.keys.map(function (k) { return data.revBucket[k] || 0; }),
+          borderColor: C.coral, backgroundColor: C.coralBg,
+          fill: true, tension: 0.4, yAxisID: 'yRev',
+          pointBackgroundColor: C.coral, pointRadius: 4, pointHoverRadius: 7
+        },
+        {
+          label: 'Pedidos',
+          data: data.buckets.keys.map(function (k) { return data.totalBucket[k] || 0; }),
+          borderColor: C.blue, backgroundColor: 'transparent',
+          borderDash: [6, 4], tension: 0.4, yAxisID: 'yOrd',
+          pointBackgroundColor: C.blue, pointRadius: 4, pointHoverRadius: 7
+        }
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false, animation: { duration: 500 },
+      interaction: { mode: 'index', intersect: false },
+      plugins: {
+        legend: { labels: { font: { family: FONT, weight: '700' }, color: '#4A5568' } },
+        tooltip: {
+          callbacks: {
+            label: function (ctx) {
+              return ctx.datasetIndex === 0
+                ? ' ' + formatMoney(ctx.parsed.y)
+                : ' ' + ctx.parsed.y + ' pedido(s)';
+            }
+          }
+        }
+      },
+      scales: {
+        x: { ticks: { font: { family: FONT }, color: '#718096' }, grid: { color: 'rgba(0,0,0,0.04)' } },
+        yRev: {
+          type: 'linear', position: 'left',
+          ticks: { font: { family: FONT }, color: C.coral, callback: function (v) { return '₡' + v.toLocaleString('es-CR'); } },
+          grid: { color: 'rgba(0,0,0,0.05)' }
+        },
+        yOrd: {
+          type: 'linear', position: 'right',
+          ticks: { font: { family: FONT }, color: C.blue, stepSize: 1 },
+          grid: { drawOnChartArea: false }
+        }
+      }
+    }
+  });
+}
+
+function renderChartHourlyRhythm(data) {
+  var hasOrders = data.totalOrders > 0;
+  showChartEmpty('chart-hourly-rhythm', !hasOrders);
+  if (!hasOrders) return;
+  var ctx = freshCanvas('chart-hourly-rhythm');
+  if (!ctx) return;
+
+  var maxVal = Math.max.apply(null, data.hourlyDist);
+  var bgColors = data.hourlyDist.map(function (v, h) {
+    if (v === 0) return 'rgba(203,213,224,0.4)';
+    var intensity = maxVal > 0 ? 0.3 + (v / maxVal) * 0.7 : 0.3;
+    return h === data.peakHour
+      ? 'rgba(255,107,107,' + intensity + ')'
+      : 'rgba(77,150,255,' + intensity + ')';
+  });
+
+  var HOUR_LABELS = [];
+  for (var h = 0; h < 24; h++) HOUR_LABELS.push(h + ':00');
+
+  analyticsCharts['hourlyRhythm'] = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: HOUR_LABELS,
+      datasets: [{
+        label: 'Pedidos',
+        data: data.hourlyDist,
+        backgroundColor: bgColors,
+        borderRadius: 5,
+        borderSkipped: false
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false, animation: { duration: 500 },
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: {
+            title: function (items) { return items[0].label + 'hs'; },
+            label: function (ctx) {
+              return ' ' + ctx.parsed.y + ' pedido(s)' + (ctx.dataIndex === data.peakHour ? ' 🔥 hora pico' : '');
+            }
+          }
+        }
+      },
+      scales: {
+        x: { ticks: { font: { family: FONT, size: 10 }, color: '#718096', maxRotation: 0 }, grid: { display: false } },
+        y: { ticks: { font: { family: FONT }, color: '#718096', stepSize: 1 }, grid: { color: 'rgba(0,0,0,0.04)' }, min: 0 }
+      }
+    }
+  });
+}
+
+function renderChartTopFlavors(data) {
+  showChartEmpty('chart-top-flavors', data.topFlavors.length === 0);
+  if (data.topFlavors.length === 0) return;
+  var ctx = freshCanvas('chart-top-flavors');
+  if (!ctx) return;
+
+  analyticsCharts['topFlavors'] = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: data.topFlavors.map(function (f) { return f.name; }),
+      datasets: [{
+        label: 'Unidades vendidas',
+        data: data.topFlavors.map(function (f) { return f.qty; }),
+        backgroundColor: data.topFlavors.map(function (_, i) { return C.palette[i % C.palette.length]; }),
+        borderRadius: 8, borderSkipped: false
+      }]
+    },
+    options: {
+      indexAxis: 'y',
+      responsive: true, maintainAspectRatio: false, animation: { duration: 500 },
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: {
+            label: function (ctx) {
+              var f = data.topFlavors[ctx.dataIndex];
+              var rev = f && data.revenue > 0 ? ' · ' + Math.round((f.rev / data.revenue) * 100) + '% de ingresos' : '';
+              return ' ' + ctx.parsed.x + ' unidad(es)' + rev;
+            }
+          }
+        }
+      },
+      scales: {
+        x: { ticks: { font: { family: FONT }, color: '#718096', stepSize: 1 }, grid: { color: 'rgba(0,0,0,0.04)' } },
+        y: { ticks: { font: { family: FONT, weight: '700' }, color: '#2D3748' }, grid: { display: false } }
+      }
+    }
+  });
+}
+
+function renderChartOrdersTimeline(data) {
+  var hasData = data.totalOrders > 0;
+  showChartEmpty('chart-orders-timeline', !hasData);
+  if (!hasData) return;
+  var ctx = freshCanvas('chart-orders-timeline');
+  if (!ctx) return;
+
+  analyticsCharts['ordersTimeline'] = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: data.buckets.labels,
+      datasets: [
+        {
+          label: 'Procesados',
+          data: data.buckets.keys.map(function (k) { return data.procBucket[k] || 0; }),
+          backgroundColor: C.limaBg, borderColor: C.lima, borderWidth: 1,
+          borderRadius: 4, stack: 'stack'
+        },
+        {
+          label: 'Cancelados',
+          data: data.buckets.keys.map(function (k) { return data.cancBucket[k] || 0; }),
+          backgroundColor: C.cancelBg, borderColor: C.coral, borderWidth: 1,
+          borderRadius: 4, stack: 'stack'
+        }
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false, animation: { duration: 500 },
+      interaction: { mode: 'index' },
+      plugins: {
+        legend: { labels: { font: { family: FONT, weight: '700' }, color: '#4A5568' } },
+        tooltip: { callbacks: { label: function (ctx) { return ' ' + ctx.dataset.label + ': ' + ctx.parsed.y; } } }
+      },
+      scales: {
+        x: { ticks: { font: { family: FONT }, color: '#718096' }, grid: { color: 'rgba(0,0,0,0.04)' }, stacked: true },
+        y: { ticks: { font: { family: FONT }, color: '#718096', stepSize: 1 }, grid: { color: 'rgba(0,0,0,0.04)' }, stacked: true, min: 0 }
+      }
+    }
+  });
+}
+
+// ---- Realtime ----
+
+function subscribeAnalyticsRealtime() {
+  if (!supabaseClient || analyticsRealtimeSub) return;
+  try {
+    analyticsRealtimeSub = supabaseClient
+      .channel('analytics-orders-rt')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'orders' }, function () {
+        var tab = document.getElementById('tab-analiticas');
+        if (tab && tab.classList.contains('active')) renderAnalytics();
+      })
+      .subscribe();
+  } catch (e) { /* realtime not available */ }
+}
+
 // ---- CATEGORIAS ----
 
 async function loadCategories() {
@@ -992,7 +1600,7 @@ function populateCategorySelects() {
     s.el.innerHTML = s.prefix;
     for (var i = 0; i < allCategories.length; i++) {
       var c = allCategories[i];
-      s.el.innerHTML += '<option value="' + safeAttr(c.slug) + '">' + (c.emoji ? c.emoji + ' ' : '') + safeText(c.name) + '</option>';
+      s.el.innerHTML += '<option value="' + safeAttr(c.id || c.slug) + '">' + (c.emoji ? c.emoji + ' ' : '') + safeText(c.name) + '</option>';
     }
     if (current) s.el.value = current;
   });
@@ -1099,7 +1707,7 @@ async function saveCategory() {
 
 async function confirmDeleteCategory(id, name, slug) {
   try {
-    var check = await supabaseClient.from('flavors').select('id', { count: 'exact' }).eq('category', slug);
+    var check = await supabaseClient.from('flavors').select('id', { count: 'exact' }).eq('category_id', id);
     if ((check.count || 0) > 0) {
       alert('No se puede eliminar "' + name + '" porque ' + check.count + ' sabor(es) la usan.\nCambia su categoría primero.');
       return;
