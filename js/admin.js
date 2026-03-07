@@ -6,6 +6,7 @@
 var currentEditId = null;
 var manualOrderCatalog = [];
 var allAdminFlavors = [];
+var allOrders = [];
 var orderEditorCatalog = [];
 var allCategories = [];
 var currentEditCategoryId = null;
@@ -385,6 +386,7 @@ async function loadOrders() {
     if (result.error) throw result.error;
 
     var orders = result.data || [];
+    allOrders = orders;
 
     if (orders.length === 0) {
       container.innerHTML = '<div style="text-align:center;padding:2rem;color:#718096">' +
@@ -395,6 +397,8 @@ async function loadOrders() {
       return;
     }
 
+    var conflicts = getPendingStockConflicts(orders);
+
     var html = '';
     for (var i = 0; i < orders.length; i++) {
       var o = orders[i];
@@ -404,14 +408,29 @@ async function loadOrders() {
       var itemCount = Array.isArray(o.items) ? o.items.reduce(function (s, it) { return s + it.quantity; }, 0) : 0;
       var customerName = o.customer_name ? safeText(o.customer_name) : 'Sin nombre';
 
-      html += '<div class="orders-list-item" onclick="openOrderEditor(\'' + o.id + '\')">' +
+      var isPending = o.status === 'pending' || o.status === 'confirmed';
+      var isExpired = isPending && (Date.now() - new Date(o.created_at).getTime()) > 86400000;
+
+      var conflictBadge = '';
+      if (conflicts[o.id]) {
+        var conflictNames = conflicts[o.id].map(function (c) { return c.name; }).join(', ');
+        conflictBadge = '<div class="order-conflict-warning">⚠️ Hay poco stock de: ' + safeText(conflictNames) + '</div>';
+      }
+
+      var expiredBadge = isExpired ? '<span class="order-status-badge status-expired">⏰ Vencido</span>' : '';
+
+      html += '<div class="orders-list-item' + (isExpired ? ' order-expired' : '') + '" onclick="openOrderEditor(\'' + o.id + '\')">' +
         '<span class="order-number-big" style="font-size:1rem">' + safeText(o.order_number) + '</span>' +
         '<div>' +
           '<div style="font-weight:700;font-size:0.9rem">' + itemCount + ' boli(s) — ' + formatMoney(parseFloat(o.total)) + '</div>' +
           '<div style="font-size:0.82rem;color:#4A5568">Cliente: ' + customerName + '</div>' +
           '<div style="font-size:0.8rem;color:#718096">' + date + '</div>' +
+          conflictBadge +
         '</div>' +
-        '<span class="order-status-badge ' + statusClass + '">' + statusLabel + '</span>' +
+        '<div style="display:flex;flex-direction:column;align-items:flex-end;gap:0.3rem">' +
+          '<span class="order-status-badge ' + statusClass + '">' + statusLabel + '</span>' +
+          expiredBadge +
+        '</div>' +
         '<span style="color:#718096;font-size:1.2rem">›</span>' +
       '</div>';
     }
@@ -928,7 +947,11 @@ async function processOrder(orderId) {
     return;
   }
 
-  if (!confirm('¿Confirmar pedido y descontar inventario?\n\nEsta acción actualizará el stock de los sabores.')) return;
+  var impacted = getImpactedOrders(orderId, validItems, allOrders);
+  var confirmMsg = impacted.length > 0
+    ? buildImpactWarning(impacted)
+    : '¿Confirmar pedido y descontar inventario?\n\nEsta acción actualizará el stock de los sabores.';
+  if (!confirm(confirmMsg)) return;
 
   var processBtn = editor.querySelector('button[onclick*="processOrder"]');
   if (processBtn) { processBtn.disabled = true; processBtn.textContent = '⏳ Procesando...'; }
@@ -947,6 +970,101 @@ async function processOrder(orderId) {
     alert('Error al procesar pedido:\n' + error.message);
     if (processBtn) { processBtn.disabled = false; processBtn.textContent = '✓ Confirmar y Descontar Inventario'; }
   }
+}
+
+// ---- Detección de conflictos de stock entre pedidos pendientes ----
+
+// Calcula qué pedidos pendientes compiten por el mismo stock limitado.
+// Devuelve { orderId: [{ name, qty, stock }] }
+function getPendingStockConflicts(orders) {
+  var stockByName = {};
+  allAdminFlavors.forEach(function (f) { stockByName[f.name] = f.stock || 0; });
+
+  var pending = orders.filter(function (o) { return o.status === 'pending' || o.status === 'confirmed'; });
+
+  var totalDemand = {};
+  var demandByOrder = {};
+  pending.forEach(function (o) {
+    demandByOrder[o.id] = {};
+    (o.items || []).forEach(function (item) {
+      var n = item.name;
+      var qty = parseInt(item.quantity, 10) || 0;
+      totalDemand[n] = (totalDemand[n] || 0) + qty;
+      demandByOrder[o.id][n] = (demandByOrder[o.id][n] || 0) + qty;
+    });
+  });
+
+  var overbooked = {};
+  Object.keys(totalDemand).forEach(function (n) {
+    if (stockByName[n] !== undefined && totalDemand[n] > stockByName[n]) {
+      overbooked[n] = { stock: stockByName[n], total: totalDemand[n] };
+    }
+  });
+
+  var conflictsByOrder = {};
+  pending.forEach(function (o) {
+    var conflicts = [];
+    Object.keys(demandByOrder[o.id] || {}).forEach(function (n) {
+      if (overbooked[n]) {
+        conflicts.push({ name: n, qty: demandByOrder[o.id][n], stock: overbooked[n].stock });
+      }
+    });
+    if (conflicts.length > 0) conflictsByOrder[o.id] = conflicts;
+  });
+
+  return conflictsByOrder;
+}
+
+// Simula procesar un pedido y devuelve qué otros pedidos quedarían sin stock.
+function getImpactedOrders(processingOrderId, processingItems, orders) {
+  var stockByName = {};
+  allAdminFlavors.forEach(function (f) { stockByName[f.name] = f.stock || 0; });
+
+  processingItems.forEach(function (item) {
+    if (stockByName[item.name] !== undefined) {
+      stockByName[item.name] -= parseInt(item.quantity, 10) || 0;
+    }
+  });
+
+  var otherPending = orders.filter(function (o) {
+    return o.id !== processingOrderId && (o.status === 'pending' || o.status === 'confirmed');
+  });
+
+  var impacted = [];
+  otherPending.forEach(function (o) {
+    var shortfalls = [];
+    (o.items || []).forEach(function (item) {
+      var remaining = stockByName[item.name] !== undefined ? stockByName[item.name] : 9999;
+      var needed = parseInt(item.quantity, 10) || 0;
+      if (remaining < needed) {
+        shortfalls.push({ name: item.name, needed: needed, available: Math.max(0, remaining) });
+      }
+    });
+    if (shortfalls.length > 0) impacted.push({ order: o, shortfalls: shortfalls });
+  });
+
+  return impacted;
+}
+
+// Genera el mensaje amigable que se muestra al confirmar un pedido con conflictos.
+function buildImpactWarning(impacted) {
+  var lines = ['⚠️ ¡Ojo, revisa esto antes de confirmar!', ''];
+  lines.push('Si aceptas este pedido, no va a quedar suficiente stock para completar otros pedidos pendientes:');
+  lines.push('');
+  impacted.forEach(function (imp) {
+    var who = imp.order.order_number + (imp.order.customer_name ? ' — ' + imp.order.customer_name : '');
+    imp.shortfalls.forEach(function (s) {
+      var quedaría = s.available === 0
+        ? 'no quedaría ninguno'
+        : 'solo quedaría ' + s.available;
+      lines.push('• Pedido ' + who + ': pide ' + s.needed + ' ' + s.name + ', pero ' + quedaría + '.');
+    });
+  });
+  lines.push('');
+  lines.push('Puede que tengas que cancelar esos pedidos o hablar antes con esos clientes.');
+  lines.push('');
+  lines.push('¿Quieres confirmar este pedido de todas formas?');
+  return lines.join('\n');
 }
 
 // Cancela una orden
