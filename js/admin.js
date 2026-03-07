@@ -370,6 +370,24 @@ function previewImage(input) {
 // GESTION DE ORDENES
 // ================================================
 
+// Marca como 'expired' en la BD los pedidos pendientes con más de 24 h sin resolver.
+// Muta el array local para evitar un segundo fetch.
+async function autoExpireOrders(orders) {
+  if (!supabaseClient) return;
+  var toExpire = orders.filter(function (o) {
+    return (o.status === 'pending' || o.status === 'confirmed') &&
+      (Date.now() - new Date(o.created_at).getTime()) > 86400000;
+  });
+  if (toExpire.length === 0) return;
+  var ids = toExpire.map(function (o) { return o.id; });
+  try {
+    var result = await supabaseClient.from('orders').update({ status: 'expired' }).in('id', ids);
+    if (!result.error) {
+      toExpire.forEach(function (o) { o.status = 'expired'; });
+    }
+  } catch (e) { /* silently ignore */ }
+}
+
 // Carga y muestra la lista de órdenes
 async function loadOrders() {
   var container = document.getElementById('orders-list');
@@ -387,6 +405,7 @@ async function loadOrders() {
 
     var orders = result.data || [];
     allOrders = orders;
+    await autoExpireOrders(orders);
 
     if (orders.length === 0) {
       container.innerHTML = '<div style="text-align:center;padding:2rem;color:#718096">' +
@@ -403,21 +422,30 @@ async function loadOrders() {
     for (var i = 0; i < orders.length; i++) {
       var o = orders[i];
       var statusClass = 'status-' + (o.status || 'pending');
-      var statusLabel = { pending: 'Pendiente', confirmed: 'Confirmado', processed: 'Procesado', cancelled: 'Cancelado' }[o.status] || o.status;
+      var statusLabel = { pending: 'Pendiente', confirmed: 'Confirmado', processed: 'Procesado', cancelled: 'Cancelado', expired: 'Vencido' }[o.status] || o.status;
       var date = new Date(o.created_at).toLocaleString('es-MX', { dateStyle: 'short', timeStyle: 'short' });
       var itemCount = Array.isArray(o.items) ? o.items.reduce(function (s, it) { return s + it.quantity; }, 0) : 0;
       var customerName = o.customer_name ? safeText(o.customer_name) : 'Sin nombre';
 
-      var isPending = o.status === 'pending' || o.status === 'confirmed';
-      var isExpired = isPending && (Date.now() - new Date(o.created_at).getTime()) > 86400000;
+      var isExpired = o.status === 'expired';
 
       var conflictBadge = '';
       if (conflicts[o.id]) {
-        var conflictNames = conflicts[o.id].map(function (c) { return c.name; }).join(', ');
-        conflictBadge = '<div class="order-conflict-warning">⚠️ Hay poco stock de: ' + safeText(conflictNames) + '</div>';
+        var conflictLines = conflicts[o.id].map(function (c) {
+          var competingNums = c.competing.map(function (x) { return x.orderNumber; }).join(' y ');
+          var suficiente = c.stock >= c.qty;
+          var msg = 'Solo hay ' + c.stock + ' ' + safeText(c.name) + ' en stock';
+          if (c.competing.length > 0) {
+            msg += ', pero entre este pedido (' + c.qty + ') y el ' + safeText(competingNums) +
+              ' (' + c.competing.map(function(x){return x.qty;}).join('+') + ') se piden ' + c.total + ' en total';
+            msg += suficiente
+              ? ' — aceptar este podría dejar al otro sin nada'
+              : ' — no alcanza para todos, aceptar uno rechaza al otro';
+          }
+          return msg;
+        });
+        conflictBadge = '<div class="order-conflict-warning">⚠️ ' + conflictLines.join('<br>⚠️ ') + '</div>';
       }
-
-      var expiredBadge = isExpired ? '<span class="order-status-badge status-expired">⏰ Vencido</span>' : '';
 
       html += '<div class="orders-list-item' + (isExpired ? ' order-expired' : '') + '" onclick="openOrderEditor(\'' + o.id + '\')">' +
         '<span class="order-number-big" style="font-size:1rem">' + safeText(o.order_number) + '</span>' +
@@ -427,10 +455,7 @@ async function loadOrders() {
           '<div style="font-size:0.8rem;color:#718096">' + date + '</div>' +
           conflictBadge +
         '</div>' +
-        '<div style="display:flex;flex-direction:column;align-items:flex-end;gap:0.3rem">' +
-          '<span class="order-status-badge ' + statusClass + '">' + statusLabel + '</span>' +
-          expiredBadge +
-        '</div>' +
+        '<span class="order-status-badge ' + statusClass + '">' + statusLabel + '</span>' +
         '<span style="color:#718096;font-size:1.2rem">›</span>' +
       '</div>';
     }
@@ -504,9 +529,9 @@ function renderOrderEditor(order) {
   var editor = document.getElementById('order-editor');
   if (!editor) return;
 
-  var statusLabel = { pending: 'Pendiente', confirmed: 'Confirmado', processed: 'Procesado', cancelled: 'Cancelado' }[order.status] || order.status;
+  var statusLabel = { pending: 'Pendiente', confirmed: 'Confirmado', processed: 'Procesado', cancelled: 'Cancelado', expired: 'Vencido' }[order.status] || order.status;
   var statusClass = 'status-' + order.status;
-  var isProcessed = order.status === 'processed' || order.status === 'cancelled';
+  var isProcessed = order.status === 'processed' || order.status === 'cancelled' || order.status === 'expired';
   var date = new Date(order.created_at).toLocaleString('es-MX', { dateStyle: 'long', timeStyle: 'short' });
   var customerName = order.customer_name ? safeText(order.customer_name) : 'Sin nombre';
 
@@ -556,6 +581,11 @@ function renderOrderEditor(order) {
     var procDate = new Date(order.processed_at).toLocaleString('es-MX', { dateStyle: 'short', timeStyle: 'short' });
     actionButtons = '<div style="padding:1rem 1.5rem;background:#F0FFF4;color:#276749;font-weight:700;font-size:0.9rem">' +
       '✓ Procesado el ' + procDate + ' — Inventario actualizado' +
+      (order.admin_notes ? '<br><span style="font-weight:400">Nota: ' + safeText(order.admin_notes) + '</span>' : '') +
+    '</div>';
+  } else if (order.status === 'expired') {
+    actionButtons = '<div style="padding:1rem 1.5rem;background:#EDE9FE;color:#5B21B6;font-weight:700;font-size:0.9rem">' +
+      '⏰ Este pedido venció sin ser procesado — pasó más de un día sin respuesta.' +
       (order.admin_notes ? '<br><span style="font-weight:400">Nota: ' + safeText(order.admin_notes) + '</span>' : '') +
     '</div>';
   }
@@ -1006,7 +1036,16 @@ function getPendingStockConflicts(orders) {
     var conflicts = [];
     Object.keys(demandByOrder[o.id] || {}).forEach(function (n) {
       if (overbooked[n]) {
-        conflicts.push({ name: n, qty: demandByOrder[o.id][n], stock: overbooked[n].stock });
+        var competing = pending
+          .filter(function (other) { return other.id !== o.id && demandByOrder[other.id][n]; })
+          .map(function (other) { return { orderNumber: other.order_number, qty: demandByOrder[other.id][n] }; });
+        conflicts.push({
+          name: n,
+          qty: demandByOrder[o.id][n],
+          stock: overbooked[n].stock,
+          total: overbooked[n].total,
+          competing: competing
+        });
       }
     });
     if (conflicts.length > 0) conflictsByOrder[o.id] = conflicts;
@@ -1219,6 +1258,7 @@ async function loadAnalyticsData() {
 function processAnalyticsData(orders, prevOrders, range) {
   var processed = orders.filter(function (o) { return o.status === 'processed'; });
   var cancelled = orders.filter(function (o) { return o.status === 'cancelled'; });
+  var expired   = orders.filter(function (o) { return o.status === 'expired'; });
   var revenue  = processed.reduce(function (s, o) { return s + parseFloat(o.total || 0); }, 0);
   var avgOrder = processed.length > 0 ? revenue / processed.length : 0;
 
@@ -1235,14 +1275,15 @@ function processAnalyticsData(orders, prevOrders, range) {
   // ---- Timeline buckets ----
   var gran = getGranularity(analyticsCurrentPeriod, range);
   var buckets = buildBuckets(range, gran);
-  var revBucket = {}, procBucket = {}, cancBucket = {}, totalBucket = {};
-  buckets.keys.forEach(function (k) { revBucket[k] = procBucket[k] = cancBucket[k] = totalBucket[k] = 0; });
+  var revBucket = {}, procBucket = {}, cancBucket = {}, expBucket = {}, totalBucket = {};
+  buckets.keys.forEach(function (k) { revBucket[k] = procBucket[k] = cancBucket[k] = expBucket[k] = totalBucket[k] = 0; });
   orders.forEach(function (o) {
     var k = getBucketKey(new Date(o.created_at), gran);
     if (totalBucket[k] !== undefined) {
       totalBucket[k]++;
       if (o.status === 'processed') { procBucket[k]++; revBucket[k] += parseFloat(o.total || 0); }
-      if (o.status === 'cancelled')   cancBucket[k]++;
+      if (o.status === 'cancelled') cancBucket[k]++;
+      if (o.status === 'expired')   expBucket[k]++;
     }
   });
 
@@ -1293,11 +1334,11 @@ function processAnalyticsData(orders, prevOrders, range) {
   return {
     revenue: revenue, avgOrder: avgOrder, prevRevenue: prevRevenue,
     totalOrders: orders.length, prevTotal: prevTotal,
-    processedCount: processed.length, cancelledCount: cancelled.length,
+    processedCount: processed.length, cancelledCount: cancelled.length, expiredCount: expired.length,
     prevCompletion: prevCompletion,
     statusCounts: statusCounts,
     buckets: buckets, gran: gran,
-    revBucket: revBucket, procBucket: procBucket, cancBucket: cancBucket, totalBucket: totalBucket,
+    revBucket: revBucket, procBucket: procBucket, cancBucket: cancBucket, expBucket: expBucket, totalBucket: totalBucket,
     hourlyDist: hourlyDist, peakHour: peakHour,
     topFlavors: topFlavors, topFlavor: topFlavor, topFlavorRevPct: topFlavorRevPct,
     projection: projection,
@@ -1438,6 +1479,11 @@ function generateInsights(data) {
     lines.push('✨ ¡Todo al día! El 100% de los pedidos fue procesado.');
   } else if (data.cancelledCount > 0) {
     lines.push('⚠️ <strong>' + data.cancelledCount + '</strong> pedido(s) cancelado(s). Tasa de completación: <strong>' + completion + '%</strong>.');
+  }
+
+  // Expired orders alert
+  if (data.expiredCount > 0) {
+    lines.push('⏰ <strong>' + data.expiredCount + '</strong> pedido(s) se vencieron sin ser atendidos — el cliente esperó más de un día sin respuesta. Intenta contestar más rápido la próxima vez.');
   }
 
   return lines;
@@ -1653,6 +1699,12 @@ function renderChartOrdersTimeline(data) {
           label: 'Cancelados',
           data: data.buckets.keys.map(function (k) { return data.cancBucket[k] || 0; }),
           backgroundColor: C.cancelBg, borderColor: C.coral, borderWidth: 1,
+          borderRadius: 4, stack: 'stack'
+        },
+        {
+          label: 'Vencidos',
+          data: data.buckets.keys.map(function (k) { return data.expBucket[k] || 0; }),
+          backgroundColor: 'rgba(124,58,237,0.65)', borderColor: '#7C3AED', borderWidth: 1,
           borderRadius: 4, stack: 'stack'
         }
       ]

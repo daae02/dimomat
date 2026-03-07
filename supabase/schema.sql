@@ -65,7 +65,7 @@ CREATE TABLE IF NOT EXISTS orders (
   total DECIMAL(10,2) NOT NULL,
   customer_name VARCHAR(100),
   customer_notes TEXT,
-  status VARCHAR(20) DEFAULT 'pending' CHECK (status IN ('pending', 'confirmed', 'processed', 'cancelled')),
+  status VARCHAR(20) DEFAULT 'pending' CHECK (status IN ('pending', 'confirmed', 'processed', 'cancelled', 'expired')),
   admin_notes TEXT,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   processed_at TIMESTAMP WITH TIME ZONE
@@ -160,6 +160,14 @@ INSERT INTO categories (name, slug, emoji, sort_order) VALUES
   ('Picante',  'picante',  '🌶️', 4),
   ('Especial', 'especial', '⭐',  5)
 ON CONFLICT (slug) DO NOTHING;
+
+-- ================================================
+-- MIGRACIÓN: nuevo estado 'expired' en órdenes
+-- ================================================
+
+ALTER TABLE orders DROP CONSTRAINT IF EXISTS orders_status_check;
+ALTER TABLE orders ADD CONSTRAINT orders_status_check
+  CHECK (status IN ('pending', 'confirmed', 'processed', 'cancelled', 'expired'));
 
 -- ================================================
 -- MIGRACIÓN: flavors.category (slug) → category_id (FK)
