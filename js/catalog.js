@@ -183,9 +183,10 @@ function renderFlavorCard(flavor) {
       ? '<span class="flavor-stock-badge badge-low">Últimos ' + flavor.stock + '</span>'
       : '<span class="flavor-stock-badge badge-available">' + flavor.stock + ' disp.</span>';
 
+  var emojiFallback = '<span style="font-size:3.5rem">' + emoji + '</span>';
   var imgHtml = flavor.image_url
-    ? '<img src="' + escapeHtml(flavor.image_url) + '" alt="' + escapeHtml(flavor.name) + '" loading="lazy" style="width:100%;height:100%;object-fit:cover" onerror="this.parentNode.innerHTML=\'<span style=font-size:3.5rem>' + emoji + '</span>\'">'
-    : '<span style="font-size:3.5rem">' + emoji + '</span>';
+    ? '<img src="' + escapeHtml(flavor.image_url) + '" alt="' + escapeHtml(flavor.name) + '" data-cat="' + escapeHtml(flavor.category) + '" loading="lazy" style="width:100%;height:100%;object-fit:cover" onerror="_cardImgFallback(this)">'
+    : emojiFallback;
 
   var safeName = escapeHtml(flavor.name);
   var idForJs = JSON.stringify(String(flavor.id)).replace(/"/g, '&quot;');
@@ -250,7 +251,7 @@ function showEmptyCatalog() {
   var grid = document.getElementById('flavors-grid');
   if (!grid) return;
   grid.innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:3rem;color:#718096">' +
-    '<div style="font-size:3rem">🧊</div>' +
+    '<div style="margin-bottom:0.5rem"><img src="assets/images/logo.svg" class="logo-img logo-coral" style="height:3rem;width:auto" alt=""></div>' +
     '<p style="font-size:1.1rem;font-weight:700">No hay sabores disponibles en este momento</p>' +
     '<p>¡Vuelve pronto para ver nuevos sabores!</p></div>';
 }
@@ -264,6 +265,18 @@ function showCatalogError() {
     '<p>Por favor recarga la página.</p>' +
     '<button onclick="loadFlavors()" style="margin-top:1rem;background:#FF6B6B;color:white;border:none;border-radius:8px;padding:0.6rem 1.2rem;cursor:pointer;font-weight:700">Reintentar</button>' +
     '</div>';
+}
+
+// Fallback cuando una imagen de sabor falla al cargar
+function _cardImgFallback(el) {
+  el.onerror = null;
+  el.style.display = 'none';
+  var cat = el.getAttribute('data-cat') || '';
+  var fb;
+  fb = document.createElement('span');
+  fb.style.fontSize = '3.5rem';
+  fb.textContent = CATEGORY_EMOJI[cat] || '🍓';
+  el.parentNode.appendChild(fb);
 }
 
 // Escapa HTML para prevenir XSS

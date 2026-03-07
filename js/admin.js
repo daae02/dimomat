@@ -180,7 +180,7 @@ function renderAdminTable(flavors) {
     var f = flavors[i];
     var imgHtml = f.image_url
       ? '<img src="' + safeAttr(f.image_url) + '" class="table-img" alt="' + safeAttr(f.name) + '" onerror="this.style.display=\'none\'">'
-      : '<div class="table-img" style="font-size:1.5rem;text-align:center;line-height:48px">🧊</div>';
+      : '<div class="table-img"><img src="assets/images/logo.svg" class="logo-img logo-coral" style="height:32px;width:auto" alt=""></div>';
     var stockStyle = f.stock === 0 ? 'color:#E53E3E;font-weight:800' : f.stock <= 5 ? 'color:#D97706;font-weight:700' : 'color:#276749';
     // Usar data-flavor-id para abrir el modal — evita embeber JSON crudo en onclick
     var safeRowId = safeAttr(f.id);

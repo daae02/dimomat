@@ -121,13 +121,25 @@ body {
 }
 
 .hero::before {
-  content: '\1F9CA';
+  content: '🧊';
   font-size: 8rem;
   position: absolute;
   top: -1rem;
   right: -1rem;
   opacity: 0.15;
   transform: rotate(15deg);
+}
+
+.hero::after {
+  content: '🍓🍫';
+  font-size: 5rem;
+  position: absolute;
+  bottom: -1rem;
+  left: -1rem;
+  opacity: 0.15;
+  transform: rotate(-15deg);
+  line-height: 1;
+  letter-spacing: -0.5rem;
 }
 
 .hero-title {
@@ -698,6 +710,23 @@ body {
   color: var(--color-secondary);
   text-decoration: none;
 }
+
+/* ================================================
+   LOGO IMG UTILITY
+   ================================================ */
+
+.logo-img {
+  height: 1.8em;
+  width: auto;
+  vertical-align: middle;
+  display: inline-block;
+}
+
+/* Color variants: converts the black SVG fill to brand colors */
+.logo-white  { filter: brightness(0) invert(1); }
+.logo-coral  { filter: brightness(0) saturate(100%) invert(52%) sepia(90%) saturate(762%) hue-rotate(313deg) brightness(107%); }
+.logo-mango  { filter: brightness(0) saturate(100%) invert(87%) sepia(74%) saturate(700%) hue-rotate(10deg) brightness(104%); }
+.logo-lima   { filter: brightness(0) saturate(100%) invert(73%) sepia(38%) saturate(500%) hue-rotate(80deg) brightness(92%); }
 
 /* ================================================
    ADMIN PANEL STYLES
