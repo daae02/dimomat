@@ -1532,26 +1532,76 @@ function renderChartRevenue(data) {
   var ctx = freshCanvas('chart-revenue');
   if (!ctx) return;
 
+  var labels = data.buckets.labels.slice();
+  var bucketKeys = data.buckets.keys.slice();
+  var revenueSeries = bucketKeys.map(function (k) { return data.revBucket[k] || 0; });
+  var ordersSeries = bucketKeys.map(function (k) { return data.totalBucket[k] || 0; });
+  var projectionSeries = null;
+
+  if (data.projection && (analyticsCurrentPeriod === 'mes' || analyticsCurrentPeriod === 'anio')) {
+    var now = new Date();
+    var projectedBuckets = bucketKeys.length;
+    if (analyticsCurrentPeriod === 'mes' && data.gran === 'day') {
+      var totalDays = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+      projectedBuckets = totalDays;
+      for (var day = bucketKeys.length + 1; day <= totalDays; day++) {
+        labels.push(day + '/' + (now.getMonth() + 1));
+        revenueSeries.push(null);
+        ordersSeries.push(null);
+      }
+    }
+
+    if (analyticsCurrentPeriod === 'anio' && data.gran === 'month') {
+      var MONTHS = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+      projectedBuckets = 12;
+      for (var mo = now.getMonth() + 1; mo < 12; mo++) {
+        labels.push(MONTHS[mo]);
+        revenueSeries.push(null);
+        ordersSeries.push(null);
+      }
+    }
+
+    var projectedPerBucket = projectedBuckets > 0 ? data.projection / projectedBuckets : 0;
+    projectionSeries = new Array(projectedBuckets).fill(projectedPerBucket);
+  }
+
+  var datasets = [
+    {
+      label: 'Ingresos (₡)',
+      data: revenueSeries,
+      borderColor: C.coral, backgroundColor: C.coralBg,
+      fill: true, tension: 0.4, yAxisID: 'yRev',
+      pointBackgroundColor: C.coral, pointRadius: 4, pointHoverRadius: 7
+    },
+    {
+      label: 'Pedidos',
+      data: ordersSeries,
+      borderColor: C.blue, backgroundColor: 'transparent',
+      borderDash: [6, 4], tension: 0.4, yAxisID: 'yOrd',
+      pointBackgroundColor: C.blue, pointRadius: 4, pointHoverRadius: 7
+    }
+  ];
+
+  if (projectionSeries) {
+    datasets.push({
+      label: 'Proyección ingresos (₡)',
+      data: projectionSeries,
+      borderColor: C.lima,
+      backgroundColor: 'transparent',
+      borderDash: [8, 6],
+      tension: 0.2,
+      fill: false,
+      yAxisID: 'yRev',
+      pointRadius: 0,
+      pointHoverRadius: 5
+    });
+  }
+
   analyticsCharts['revenue'] = new Chart(ctx, {
     type: 'line',
     data: {
-      labels: data.buckets.labels,
-      datasets: [
-        {
-          label: 'Ingresos (₡)',
-          data: data.buckets.keys.map(function (k) { return data.revBucket[k] || 0; }),
-          borderColor: C.coral, backgroundColor: C.coralBg,
-          fill: true, tension: 0.4, yAxisID: 'yRev',
-          pointBackgroundColor: C.coral, pointRadius: 4, pointHoverRadius: 7
-        },
-        {
-          label: 'Pedidos',
-          data: data.buckets.keys.map(function (k) { return data.totalBucket[k] || 0; }),
-          borderColor: C.blue, backgroundColor: 'transparent',
-          borderDash: [6, 4], tension: 0.4, yAxisID: 'yOrd',
-          pointBackgroundColor: C.blue, pointRadius: 4, pointHoverRadius: 7
-        }
-      ]
+      labels: labels,
+      datasets: datasets
     },
     options: {
       responsive: true, maintainAspectRatio: false, animation: { duration: 500 },
@@ -1561,9 +1611,8 @@ function renderChartRevenue(data) {
         tooltip: {
           callbacks: {
             label: function (ctx) {
-              return ctx.datasetIndex === 0
-                ? ' ' + formatMoney(ctx.parsed.y)
-                : ' ' + ctx.parsed.y + ' pedido(s)';
+              if (ctx.dataset.yAxisID === 'yOrd') return ' ' + ctx.parsed.y + ' pedido(s)';
+              return ' ' + formatMoney(ctx.parsed.y);
             }
           }
         }
