@@ -205,11 +205,11 @@
               <thead>
                 <tr>
                   <th>Imagen</th><th>Nombre</th><th>Categoría</th>
-                  <th>Precio</th><th>Stock</th><th>Disponible</th><th>Acciones</th>
+                  <th>Precio</th><th>Costo</th><th>Stock</th><th>Disponible</th><th>Acciones</th>
                 </tr>
               </thead>
               <tbody id="flavors-tbody">
-                <tr><td colspan="7" style="text-align:center;padding:2rem;color:#718096">Cargando...</td></tr>
+                <tr><td colspan="8" style="text-align:center;padding:2rem;color:#718096">Cargando...</td></tr>
               </tbody>
             </table>
           </div>
@@ -286,6 +286,18 @@
               <div class="kpi-label">Proyección fin de período</div>
               <div id="kpi-projection-trend" class="kpi-trend-wrap"></div>
             </div>
+            <div class="kpi-card" id="kpi-net-income-card" style="border-left-color:#16a34a">
+              <div class="kpi-icon">💵</div>
+              <div class="kpi-value kpi-value-sm" id="kpi-net-income">—</div>
+              <div class="kpi-label">Ganancia neta</div>
+              <div class="kpi-sublabel" style="font-size:0.75rem;color:#718096;margin-top:0.25rem">Después de costos de producción</div>
+            </div>
+            <div class="kpi-card" style="border-left-color:#7c3aed">
+              <div class="kpi-icon">📊</div>
+              <div class="kpi-value kpi-value-sm" id="kpi-avg-margin">—</div>
+              <div class="kpi-label">Margen de ganancia</div>
+              <div class="kpi-sublabel" style="font-size:0.75rem;color:#718096;margin-top:0.25rem">Por cada ₡100 vendidos</div>
+            </div>
           </div>
 
           <!-- Smart insights -->
@@ -330,6 +342,30 @@
               <div class="chart-canvas-wrap">
                 <canvas id="chart-top-flavors"></canvas>
                 <div id="chart-top-flavors-empty" class="chart-empty" style="display:none">📭 Sin ventas procesadas</div>
+              </div>
+            </div>
+
+            <!-- Rentabilidad por sabor: ingresos vs costos -->
+            <div class="chart-card">
+              <div class="chart-card-header">
+                <div class="chart-card-title">💹 Rentabilidad por sabor</div>
+                <div class="chart-card-subtitle">Ingresos vs costos de producción</div>
+              </div>
+              <div class="chart-canvas-wrap">
+                <canvas id="chart-flavor-profit"></canvas>
+                <div id="chart-flavor-profit-empty" class="chart-empty" style="display:none">📭 Sin ventas procesadas</div>
+              </div>
+            </div>
+
+            <!-- Top sabores por ganancia neta -->
+            <div class="chart-card">
+              <div class="chart-card-header">
+                <div class="chart-card-title">🏆 Sabores más rentables</div>
+                <div class="chart-card-subtitle">Ganancia neta por sabor (precio − costo)</div>
+              </div>
+              <div class="chart-canvas-wrap">
+                <canvas id="chart-top-profit-flavors"></canvas>
+                <div id="chart-top-profit-flavors-empty" class="chart-empty" style="display:none">📭 Sin ventas procesadas</div>
               </div>
             </div>
 
@@ -438,6 +474,11 @@
               <label class="form-label" for="f-stock">Stock <span style="color:#E53E3E">*</span></label>
               <input id="f-stock" class="form-input" type="number" min="0" step="1" placeholder="0" required>
             </div>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="f-production-cost">Costo de producción (₡)</label>
+            <input id="f-production-cost" class="form-input" type="number" min="0" step="1" placeholder="0">
+            <p style="font-size:0.78rem;color:#718096;margin:0.25rem 0 0">¿Cuánto te cuesta hacer un boli de este sabor?</p>
           </div>
           <div class="form-group">
             <label class="form-label" for="f-category">Categoría</label>

@@ -137,7 +137,7 @@ function switchTab(tabName, btn) {
 async function loadAdminFlavors() {
   var tbody = document.getElementById('flavors-tbody');
   if (!tbody) return;
-  tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:2rem;color:#718096">Cargando inventario...</td></tr>';
+  tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:2rem;color:#718096">Cargando inventario...</td></tr>';
   try {
     var result = await supabaseClient.from('flavors').select('*, category:categories(id,name,slug,emoji)').order('created_at', { ascending: false });
     if (result.error) throw result.error;
@@ -145,7 +145,7 @@ async function loadAdminFlavors() {
     renderAdminTable(allAdminFlavors);
     renderStatsCards(allAdminFlavors);
   } catch (error) {
-    tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:2rem;color:#E53E3E">Error: ' + error.message + '</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:2rem;color:#E53E3E">Error: ' + error.message + '</td></tr>';
   }
 }
 
@@ -200,7 +200,7 @@ function renderAdminTable(flavors) {
   var tbody = document.getElementById('flavors-tbody');
   if (!tbody) return;
   if (flavors.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:2rem;color:#718096">No hay sabores registrados. ¡Agrega el primero!</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:2rem;color:#718096">No hay sabores registrados. ¡Agrega el primero!</td></tr>';
     return;
   }
   var html = '';
@@ -210,6 +210,8 @@ function renderAdminTable(flavors) {
       ? '<img src="' + safeAttr(f.image_url) + '" class="table-img" alt="' + safeAttr(f.name) + '" onerror="this.style.display=\'none\'">'
       : '<div class="table-img"><img src="assets/images/logo.svg" class="logo-img logo-coral" style="height:32px;width:auto" alt=""></div>';
     var stockStyle = f.stock === 0 ? 'color:#E53E3E;font-weight:800' : f.stock <= 5 ? 'color:#D97706;font-weight:700' : 'color:#276749';
+    var productionCost = parseFloat(f.production_cost) || 0;
+    var costDisplay = productionCost > 0 ? '₡' + productionCost.toLocaleString('es-CR') : '<span style="color:#A0AEC0">—</span>';
     // Usar data-flavor-id para abrir el modal — evita embeber JSON crudo en onclick
     var safeRowId = safeAttr(f.id);
     html += '<tr>' +
@@ -217,6 +219,7 @@ function renderAdminTable(flavors) {
       '<td><strong>' + safeText(f.name) + '</strong></td>' +
       '<td><span class="category-badge cat-' + safeAttr((f.category && f.category.slug) || '') + '">' + safeText((f.category && f.category.emoji) || '') + ' ' + safeText((f.category && f.category.name) || 'Sin categoría') + '</span></td>' +
       '<td>' + formatMoney(parseFloat(f.price)) + '</td>' +
+      '<td style="font-size:0.9rem">' + costDisplay + '</td>' +
       '<td style="' + stockStyle + '">' + (f.stock || 0) + '</td>' +
       '<td><label class="toggle-available"><input type="checkbox" ' + (f.is_available ? 'checked' : '') + ' onchange="toggleAvailability(\'' + safeRowId + '\', this.checked)"><span class="toggle-slider"></span></label></td>' +
       '<td>' +
@@ -235,6 +238,8 @@ async function saveFlavor() {
   var stock = parseInt(document.getElementById('f-stock').value, 10);
   var category = document.getElementById('f-category').value;
   var isAvailable = document.getElementById('f-available').checked;
+  var productionCostVal = document.getElementById('f-production-cost').value;
+  var productionCost = productionCostVal !== '' ? parseFloat(productionCostVal) : 0;
   var imageFile = document.getElementById('f-image').files[0];
   var currentImageUrl = document.getElementById('f-current-image').value;
   var errorEl = document.getElementById('form-error');
@@ -244,6 +249,7 @@ async function saveFlavor() {
   if (!name) { errorEl.textContent = 'El nombre es requerido.'; return; }
   if (isNaN(price) || price <= 0) { errorEl.textContent = 'El precio debe ser mayor a 0.'; return; }
   if (isNaN(stock) || stock < 0) { errorEl.textContent = 'El stock no puede ser negativo.'; return; }
+  if (isNaN(productionCost) || productionCost < 0) { errorEl.textContent = 'El costo de producción no puede ser negativo.'; return; }
 
   saveBtn.disabled = true;
   saveBtn.textContent = 'Guardando...';
@@ -252,7 +258,7 @@ async function saveFlavor() {
     var imageUrl = currentImageUrl;
     if (imageFile) imageUrl = await uploadImage(imageFile);
 
-    var data = { name: name, description: desc, price: price, stock: stock, category_id: category || null, is_available: isAvailable, image_url: imageUrl || null };
+    var data = { name: name, description: desc, price: price, stock: stock, category_id: category || null, is_available: isAvailable, image_url: imageUrl || null, production_cost: productionCost || 0 };
     var result = currentEditId
       ? await supabaseClient.from('flavors').update(data).eq('id', currentEditId)
       : await supabaseClient.from('flavors').insert([data]);
@@ -320,6 +326,7 @@ function openEditModal(flavor) {
   document.getElementById('f-description').value = flavor.description || '';
   document.getElementById('f-price').value = flavor.price || '';
   document.getElementById('f-stock').value = flavor.stock !== undefined ? flavor.stock : 0;
+  document.getElementById('f-production-cost').value = flavor.production_cost !== undefined && flavor.production_cost !== null ? parseFloat(flavor.production_cost) : 0;
   document.getElementById('f-category').value = (flavor.category && flavor.category.id) || '';
   document.getElementById('f-available').checked = flavor.is_available !== false;
   document.getElementById('f-current-image').value = flavor.image_url || '';
@@ -1241,21 +1248,30 @@ async function loadAnalyticsData() {
   var range = getAnalyticsRange();
   var prev  = getPrevRange(range);
 
-  var [curRes, prevRes] = await Promise.all([
+  var [curRes, prevRes, flavorsRes] = await Promise.all([
     supabaseClient.from('orders').select('*')
       .gte('created_at', range.from.toISOString())
       .lte('created_at', range.to.toISOString())
       .order('created_at'),
     supabaseClient.from('orders').select('total,status,created_at,items')
       .gte('created_at', prev.from.toISOString())
-      .lt('created_at',  prev.to.toISOString())
+      .lt('created_at',  prev.to.toISOString()),
+    supabaseClient.from('flavors').select('name, production_cost')
   ]);
 
   if (curRes.error) throw curRes.error;
-  return { orders: curRes.data || [], prevOrders: prevRes.data || [], range: range };
+
+  // Build a lookup map: flavorName -> productionCost
+  var flavorCostMap = {};
+  (flavorsRes.data || []).forEach(function (f) {
+    flavorCostMap[f.name] = parseFloat(f.production_cost) || 0;
+  });
+
+  return { orders: curRes.data || [], prevOrders: prevRes.data || [], range: range, flavorCostMap: flavorCostMap };
 }
 
-function processAnalyticsData(orders, prevOrders, range) {
+function processAnalyticsData(orders, prevOrders, range, flavorCostMap) {
+  flavorCostMap = flavorCostMap || {};
   var processed = orders.filter(function (o) { return o.status === 'processed'; });
   var cancelled = orders.filter(function (o) { return o.status === 'cancelled'; });
   var expired   = orders.filter(function (o) { return o.status === 'expired'; });
@@ -1314,6 +1330,34 @@ function processAnalyticsData(orders, prevOrders, range) {
   var topFlavorRevPct = (topFlavor && revenue > 0)
     ? Math.round((topFlavor.rev / revenue) * 100) : 0;
 
+  // ---- Production cost & profitability per flavor ----
+  var flavorCost = {};
+  processed.forEach(function (o) {
+    (o.items || []).forEach(function (item) {
+      var n = item.name || '?';
+      var qty = parseInt(item.quantity, 10) || 0;
+      var costPerUnit = flavorCostMap[n] || 0;
+      flavorCost[n] = (flavorCost[n] || 0) + costPerUnit * qty;
+    });
+  });
+
+  var totalProductionCosts = Object.keys(flavorCost).reduce(function (s, n) { return s + flavorCost[n]; }, 0);
+  var netIncome = revenue - totalProductionCosts;
+  var avgMargin = revenue > 0 ? (netIncome / revenue) * 100 : null;
+
+  // Per-flavor profitability array (all flavors with sales)
+  var flavorProfitability = Object.keys(flavorQty).map(function (n) {
+    var rev = flavorRev[n] || 0;
+    var cost = flavorCost[n] || 0;
+    var profit = rev - cost;
+    return { name: n, qty: flavorQty[n], rev: rev, cost: cost, profit: profit };
+  });
+
+  // Top flavors sorted by net profit descending (up to 8)
+  var topProfitFlavors = flavorProfitability.slice()
+    .sort(function (a, b) { return b.profit - a.profit; })
+    .slice(0, 8);
+
   // ---- Projection ----
   var projection = null;
   if (analyticsCurrentPeriod === 'mes' || analyticsCurrentPeriod === 'anio') {
@@ -1342,7 +1386,9 @@ function processAnalyticsData(orders, prevOrders, range) {
     hourlyDist: hourlyDist, peakHour: peakHour,
     topFlavors: topFlavors, topFlavor: topFlavor, topFlavorRevPct: topFlavorRevPct,
     projection: projection,
-    peakBucketLabel: peakBucketLabel, peakBucketCount: peakBucketCount
+    peakBucketLabel: peakBucketLabel, peakBucketCount: peakBucketCount,
+    totalProductionCosts: totalProductionCosts, netIncome: netIncome, avgMargin: avgMargin,
+    flavorProfitability: flavorProfitability, topProfitFlavors: topProfitFlavors
   };
 }
 
@@ -1359,7 +1405,7 @@ async function renderAnalytics() {
 
   try {
     var res = await loadAnalyticsData();
-    var data = processAnalyticsData(res.orders, res.prevOrders, res.range);
+    var data = processAnalyticsData(res.orders, res.prevOrders, res.range, res.flavorCostMap);
 
     renderAnalyticsKPIs(data);
     renderAnalyticsInsights(data);
@@ -1367,6 +1413,8 @@ async function renderAnalytics() {
     renderChartHourlyRhythm(data);
     renderChartTopFlavors(data);
     renderChartOrdersTimeline(data);
+    renderChartFlavorProfit(data);
+    renderChartTopProfitFlavors(data);
 
     var updEl = document.getElementById('analytics-last-updated');
     if (updEl) updEl.textContent = new Date().toLocaleTimeString('es-CR', { hour: '2-digit', minute: '2-digit' });
@@ -1413,6 +1461,29 @@ function renderAnalyticsKPIs(data) {
 
   var compEl = document.getElementById('kpi-completion');
   if (compEl) compEl.style.color = completion >= 70 ? '#276749' : completion >= 40 ? '#D97706' : '#E53E3E';
+
+  // Net income KPI
+  var netIncomeEl = document.getElementById('kpi-net-income');
+  if (netIncomeEl) {
+    netIncomeEl.textContent = data.processedCount > 0 ? formatMoney(data.netIncome) : '—';
+    netIncomeEl.style.color = data.netIncome >= 0 ? '#16a34a' : '#dc2626';
+  }
+  var netIncomeCard = document.getElementById('kpi-net-income-card');
+  if (netIncomeCard) {
+    netIncomeCard.style.borderLeftColor = data.netIncome >= 0 ? '#16a34a' : '#dc2626';
+  }
+
+  // Average margin KPI
+  var marginEl = document.getElementById('kpi-avg-margin');
+  if (marginEl) {
+    if (data.avgMargin !== null && data.processedCount > 0) {
+      marginEl.textContent = Math.round(data.avgMargin) + '%';
+      marginEl.style.color = '#7c3aed';
+    } else {
+      marginEl.textContent = '—';
+      marginEl.style.color = '';
+    }
+  }
 }
 
 // ---- Insights ----
@@ -1768,6 +1839,112 @@ function renderChartOrdersTimeline(data) {
       scales: {
         x: { ticks: { font: { family: FONT }, color: '#718096' }, grid: { color: 'rgba(0,0,0,0.04)' }, stacked: true },
         y: { ticks: { font: { family: FONT }, color: '#718096', stepSize: 1 }, grid: { color: 'rgba(0,0,0,0.04)' }, stacked: true, min: 0 }
+      }
+    }
+  });
+}
+
+function renderChartFlavorProfit(data) {
+  var flavors = data.flavorProfitability || [];
+  showChartEmpty('chart-flavor-profit', flavors.length === 0);
+  if (flavors.length === 0) return;
+  var ctx = freshCanvas('chart-flavor-profit');
+  if (!ctx) return;
+
+  // Sort by revenue descending for display
+  var sorted = flavors.slice().sort(function (a, b) { return b.rev - a.rev; }).slice(0, 8);
+
+  analyticsCharts['flavorProfit'] = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: sorted.map(function (f) { return f.name; }),
+      datasets: [
+        {
+          label: 'Ingresos (₡)',
+          data: sorted.map(function (f) { return f.rev; }),
+          backgroundColor: 'rgba(22,163,74,0.75)',
+          borderColor: '#16a34a',
+          borderWidth: 1,
+          borderRadius: 4
+        },
+        {
+          label: 'Costo de producción (₡)',
+          data: sorted.map(function (f) { return f.cost; }),
+          backgroundColor: 'rgba(249,115,22,0.75)',
+          borderColor: '#f97316',
+          borderWidth: 1,
+          borderRadius: 4
+        }
+      ]
+    },
+    options: {
+      indexAxis: 'y',
+      responsive: true, maintainAspectRatio: false, animation: { duration: 500 },
+      interaction: { mode: 'index' },
+      plugins: {
+        legend: { labels: { font: { family: FONT, weight: '700' }, color: '#4A5568' } },
+        tooltip: {
+          callbacks: {
+            label: function (ctx) {
+              var f = sorted[ctx.dataIndex];
+              if (ctx.datasetIndex === 0) return ' Ingresos: ' + formatMoney(ctx.parsed.x);
+              var profit = f ? f.profit : 0;
+              return ' Costo: ' + formatMoney(ctx.parsed.x) + ' · Ganancia neta: ' + formatMoney(profit);
+            }
+          }
+        }
+      },
+      scales: {
+        x: { ticks: { font: { family: FONT }, color: '#718096', callback: function (v) { return '₡' + v.toLocaleString('es-CR'); } }, grid: { color: 'rgba(0,0,0,0.04)' } },
+        y: { ticks: { font: { family: FONT, weight: '700' }, color: '#2D3748' }, grid: { display: false } }
+      }
+    }
+  });
+}
+
+function renderChartTopProfitFlavors(data) {
+  var flavors = data.topProfitFlavors || [];
+  showChartEmpty('chart-top-profit-flavors', flavors.length === 0);
+  if (flavors.length === 0) return;
+  var ctx = freshCanvas('chart-top-profit-flavors');
+  if (!ctx) return;
+
+  analyticsCharts['topProfitFlavors'] = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: flavors.map(function (f) { return f.name; }),
+      datasets: [{
+        label: 'Ganancia neta (₡)',
+        data: flavors.map(function (f) { return f.profit; }),
+        backgroundColor: flavors.map(function (f) {
+          return f.profit >= 0 ? 'rgba(22,163,74,0.75)' : 'rgba(220,38,38,0.75)';
+        }),
+        borderColor: flavors.map(function (f) {
+          return f.profit >= 0 ? '#16a34a' : '#dc2626';
+        }),
+        borderWidth: 1,
+        borderRadius: 8,
+        borderSkipped: false
+      }]
+    },
+    options: {
+      indexAxis: 'y',
+      responsive: true, maintainAspectRatio: false, animation: { duration: 500 },
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: {
+            label: function (ctx) {
+              var f = flavors[ctx.dataIndex];
+              var units = f ? ' · ' + f.qty + ' unidad(es)' : '';
+              return ' Ganancia neta: ' + formatMoney(ctx.parsed.x) + units;
+            }
+          }
+        }
+      },
+      scales: {
+        x: { ticks: { font: { family: FONT }, color: '#718096', callback: function (v) { return '₡' + v.toLocaleString('es-CR'); } }, grid: { color: 'rgba(0,0,0,0.04)' } },
+        y: { ticks: { font: { family: FONT, weight: '700' }, color: '#2D3748' }, grid: { display: false } }
       }
     }
   });
