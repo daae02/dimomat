@@ -119,14 +119,43 @@ supabase link --project-ref TU_PROJECT_ID
 # Desplegar ambas Edge Functions
 supabase functions deploy create-order
 supabase functions deploy process-order
+supabase functions deploy daily-summary-email
 ```
 
 Deberías ver: `Deployed successfully` para cada una.
 
-### 4.4 Verificar el despliegue
+
+### 4.5 Configurar correos automáticos (Supabase Edge Functions)
+
+Estas variables se configuran en **Supabase -> Edge Functions -> Secrets**:
+
+- `RESEND_API_KEY`: API key de Resend (servicio de email)
+- `EMAIL_FROM`: remitente verificado (ej: `Bolis Dimomat <ventas@tudominio.com>`)
+- `ORDER_ALERT_EMAIL`: correo que recibe cada orden nueva
+- `DAILY_SUMMARY_EMAIL`: correo para el resumen diario (si no existe, usa `ORDER_ALERT_EMAIL`)
+- `CRON_SECRET`: secreto para proteger la función de resumen diario
+
+Con esto:
+- Cada vez que se crea una orden (`create-order`), llega un email automático.
+- La función `daily-summary-email` envía el resumen del día (KPIs principales).
+
+### 4.6 Programar el resumen diario (fin de día)
+
+En Supabase ve a **Database -> Cron** y crea un job diario que haga POST a:
+
+`https://TU_PROYECTO.supabase.co/functions/v1/daily-summary-email`
+
+Headers recomendados:
+
+- `Content-Type: application/json`
+- `x-cron-secret: TU_CRON_SECRET`
+
+Ejemplo de horario: todos los días a las `21:00` (hora local del negocio).
+
+### 4.7 Verificar el despliegue
 
 1. En Supabase, ve a **Edge Functions**
-2. Deberías ver `create-order` y `process-order` en la lista
+2. Deberías ver `create-order`, `process-order` y `daily-summary-email` en la lista
 3. El estado debe ser **Active**
 
 > **Nota:** Si no quieres instalar la CLI, las Edge Functions son opcionales.

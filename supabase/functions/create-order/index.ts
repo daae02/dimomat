@@ -11,11 +11,58 @@
 // ================================================
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { sendEmail } from '../_shared/email.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
+
+
+async function sendOrderNotificationEmail(order: {
+  order_number: string;
+  customer_name: string;
+  total: number;
+  items: Array<{ name: string; quantity: number; price: number }>;
+  created_at: string;
+}) {
+  const recipient = Deno.env.get('ORDER_ALERT_EMAIL');
+  if (!recipient) {
+    console.warn('[create-order] ORDER_ALERT_EMAIL no configurado, se omite notificacion');
+    return;
+  }
+
+  const itemsHtml = order.items
+    .map((item) => `<li>${item.quantity} x ${item.name} — ₡${item.price.toFixed(2)}</li>`)
+    .join('');
+
+  const subject = `🧊 Nueva orden ${order.order_number}`;
+  const text = [
+    `Nueva orden: ${order.order_number}`,
+    `Cliente: ${order.customer_name}`,
+    `Total: ₡${order.total.toFixed(2)}`,
+    `Fecha: ${order.created_at}`,
+    '',
+    'Items:',
+    ...order.items.map((item) => `- ${item.quantity} x ${item.name} (₡${item.price.toFixed(2)})`),
+  ].join('\n');
+
+  const html = `
+    <h2>Nueva orden recibida: ${order.order_number}</h2>
+    <p><strong>Cliente:</strong> ${order.customer_name}</p>
+    <p><strong>Total:</strong> ₡${order.total.toFixed(2)}</p>
+    <p><strong>Fecha:</strong> ${new Date(order.created_at).toLocaleString('es-CR')}</p>
+    <h3>Detalle</h3>
+    <ul>${itemsHtml}</ul>
+  `;
+
+  await sendEmail({
+    to: recipient,
+    subject,
+    text,
+    html,
+  });
+}
 
 Deno.serve(async (req: Request) => {
   if (req.method === 'OPTIONS') {
@@ -84,6 +131,18 @@ Deno.serve(async (req: Request) => {
         status: 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
+    }
+
+    try {
+      await sendOrderNotificationEmail({
+        order_number: data.order_number,
+        customer_name: customer_name.trim(),
+        total,
+        items: items,
+        created_at: data.created_at,
+      });
+    } catch (emailError) {
+      console.error('[create-order] Error enviando email de nueva orden:', emailError);
     }
 
     return new Response(
