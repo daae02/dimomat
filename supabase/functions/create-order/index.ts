@@ -86,6 +86,30 @@ Deno.serve(async (req: Request) => {
       });
     }
 
+    // Notify admins of the new order — kept alive after response via waitUntil.
+    try {
+      const notifyUrl = `${supabaseUrl}/functions/v1/notify-order`;
+      const notifyPromise = fetch(notifyUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${serviceRoleKey}`,
+        },
+        body: JSON.stringify({
+          order_number: data.order_number,
+          customer_name: customer_name.trim(),
+          items,
+          total,
+          created_at: data.created_at,
+        }),
+      }).then(r => console.log('[create-order] notify-order status:', r.status))
+        .catch((e: unknown) => console.error('[create-order] notify-order failed:', e));
+      // @ts-ignore: EdgeRuntime is available in Supabase edge functions
+      EdgeRuntime.waitUntil(notifyPromise);
+    } catch (notifyErr) {
+      console.error('[create-order] Failed to dispatch notify-order:', notifyErr);
+    }
+
     return new Response(
       JSON.stringify({
         success: true,
