@@ -118,6 +118,7 @@ function showDashboard(user) {
   if (el) el.textContent = user.email;
   loadCategories();
   subscribeAnalyticsRealtime();
+  if (typeof initProductionModule === 'function') initProductionModule();
 }
 
 // ---- TABS ----
@@ -130,6 +131,9 @@ function switchTab(tabName, btn) {
   if (tabName === 'ordenes') loadOrders();
   if (tabName === 'categorias') loadCategories();
   if (tabName === 'analiticas') renderAnalytics();
+  if (tabName === 'produccion' && typeof loadAndRenderIngredients === 'function') {
+    switchProdSubtab('ingredientes');
+  }
 }
 
 // ---- CRUD SABORES ----
@@ -2122,11 +2126,11 @@ async function confirmDeleteCategory(id, name, slug) {
 
 // ---- UTILS ----
 
-function showToast(msg) {
+function showToast(msg, type) {
   var old = document.querySelector('.success-toast');
   if (old) old.remove();
   var toast = document.createElement('div');
-  toast.className = 'success-toast';
+  toast.className = 'success-toast' + (type === 'error' ? ' success-toast--error' : '');
   toast.textContent = msg;
   document.body.appendChild(toast);
   setTimeout(function () { if (toast.parentNode) toast.remove(); }, 3000);

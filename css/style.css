@@ -1121,6 +1121,7 @@ body {
   animation: toast-in 0.3s ease, toast-out 0.3s ease 2.7s forwards;
   box-shadow: 0 4px 12px rgba(0,0,0,0.2);
 }
+.success-toast--error { background: #C53030; }
 
 @keyframes toast-in {
   from { transform: translateY(100%); opacity: 0; }
@@ -1514,4 +1515,172 @@ body {
   .chart-card.chart-wide { grid-column: 1; }
   .analytics-kpi-grid { grid-template-columns: repeat(2, 1fr); }
   .analytics-live-badge { margin-left: 0; }
+}
+
+/* ================================================ */
+/* MÓDULO PRODUCCIÓN                                */
+/* ================================================ */
+
+/* Sub-tabs de producción */
+.prod-subtabs {
+  display: flex;
+  gap: 0;
+  border-bottom: 2px solid #E2E8F0;
+  margin-bottom: 1.25rem;
+  overflow-x: auto;
+}
+
+.prod-subtab-btn {
+  padding: 0.65rem 1.25rem;
+  font-family: 'Nunito', sans-serif;
+  font-weight: 700;
+  font-size: 0.92rem;
+  border: none;
+  background: none;
+  cursor: pointer;
+  color: #718096;
+  border-bottom: 3px solid transparent;
+  margin-bottom: -2px;
+  transition: color 0.2s;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.prod-subtab-btn.active {
+  color: var(--color-primary);
+  border-bottom-color: var(--color-primary);
+}
+
+.prod-subtab-btn:hover:not(.active) {
+  color: var(--text-primary);
+}
+
+/* Paneles de sub-tabs */
+.prod-panel {
+  display: none;
+}
+
+.prod-panel.active {
+  display: block;
+}
+
+/* Separador de sección con etiqueta */
+.prod-section-divider {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  font-weight: 800;
+  font-size: 0.82rem;
+  color: #718096;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin: 1rem 0 0.6rem;
+}
+
+.prod-section-divider::before,
+.prod-section-divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: #E2E8F0;
+}
+
+/* Tarjeta de sabor en el modal de tanda */
+.prod-flavor-card {
+  background: #F7FAFC;
+  border: 1px solid #E2E8F0;
+  border-radius: var(--border-radius-sm);
+  padding: 0.85rem 1rem;
+  margin-bottom: 0.6rem;
+}
+
+.prod-flavor-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+/* Fila de ingrediente: select + qty + unidad + eliminar */
+.ingredient-row {
+  display: grid;
+  grid-template-columns: 1fr auto auto auto;
+  gap: 0.5rem;
+  align-items: center;
+  margin-bottom: 0.4rem;
+}
+
+@media (max-width: 600px) {
+  .ingredient-row {
+    grid-template-columns: 1fr auto auto;
+  }
+}
+
+/* Previsualización de costos */
+.batch-cost-preview {
+  background: #F7FAFC;
+  border: 1px solid #E2E8F0;
+  border-radius: var(--border-radius-sm);
+  padding: 0.75rem;
+  margin-top: 0.5rem;
+}
+
+.batch-cost-preview-row {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  gap: 0.75rem;
+  align-items: center;
+  padding: 0.3rem 0;
+  border-bottom: 1px solid #EDF2F7;
+  font-size: 0.875rem;
+}
+
+.batch-cost-preview-row:last-child {
+  border-bottom: none;
+}
+
+/* Tarjeta de tanda en historial */
+.batch-card {
+  background: var(--bg-card);
+  border-radius: var(--border-radius-sm);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.06);
+  overflow: hidden;
+  margin-bottom: 1rem;
+  border-left: 4px solid var(--color-primary);
+}
+
+.batch-card-header {
+  background: #F7FAFC;
+  padding: 0.85rem 1.25rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  border-bottom: 1px solid #E2E8F0;
+}
+
+.batch-card-body {
+  padding: 0.85rem 1.25rem;
+}
+
+@media (max-width: 600px) {
+  .prod-subtab-btn {
+    flex: 1;
+    padding: 0.55rem 0.25rem;
+    font-size: 0.78rem;
+    text-align: center;
+  }
+  .prod-flavor-card-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  .batch-cost-preview-row {
+    grid-template-columns: 1fr auto;
+  }
+  .batch-card-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
 }

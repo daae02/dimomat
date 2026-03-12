@@ -167,6 +167,7 @@
         <button class="admin-tab active" onclick="switchTab('inventario', this)">📦 Inventario</button>
         <button class="admin-tab" onclick="switchTab('ordenes', this)">🛒 Órdenes</button>
         <button class="admin-tab" onclick="switchTab('categorias', this)">🏷️ Categorías</button>
+        <button class="admin-tab" onclick="switchTab('produccion', this)">🧊 Producción</button>
         <button class="admin-tab" onclick="switchTab('analiticas', this)">📊 Analíticas</button>
       </div>
 
@@ -409,6 +410,48 @@
         </div>
       </div>
 
+      <!-- TAB: PRODUCCION -->
+      <div id="tab-produccion" class="tab-panel">
+        <!-- Sub-tabs -->
+        <div class="prod-subtabs">
+          <button class="prod-subtab-btn active" data-subtab="ingredientes" onclick="switchProdSubtab('ingredientes')">🥛 Ingredientes</button>
+          <button class="prod-subtab-btn" data-subtab="tandas" onclick="switchProdSubtab('tandas')">🧊 Nueva Tanda</button>
+          <button class="prod-subtab-btn" data-subtab="historial" onclick="switchProdSubtab('historial')">📋 Historial</button>
+        </div>
+
+        <!-- Panel: Ingredientes -->
+        <div id="prod-panel-ingredientes" class="prod-panel active">
+          <div class="section-header">
+            <h3>Ingredientes</h3>
+            <button class="btn btn-primary" onclick="openIngredientModal(null)">+ Ingrediente</button>
+          </div>
+          <div id="prod-ingredients-list">
+            <p class="empty-state">Cargando ingredientes...</p>
+          </div>
+        </div>
+
+        <!-- Panel: Nueva Tanda -->
+        <div id="prod-panel-tandas" class="prod-panel">
+          <div class="section-header">
+            <h3>Registrar Tanda de Producción</h3>
+          </div>
+          <div style="text-align:center; padding: 2rem;">
+            <p style="margin-bottom:1rem; color: var(--color-text-secondary);">Registrá los ingredientes usados y los bolis producidos en una tanda.</p>
+            <button class="btn btn-primary btn-lg" onclick="openNewBatchModal()">🧊 Nueva Tanda</button>
+          </div>
+        </div>
+
+        <!-- Panel: Historial -->
+        <div id="prod-panel-historial" class="prod-panel">
+          <div class="section-header">
+            <h3>Historial de Tandas</h3>
+          </div>
+          <div id="prod-batches-list">
+            <p class="empty-state">Cargando historial...</p>
+          </div>
+        </div>
+      </div>
+
       <!-- TAB: ORDENES -->
       <div id="tab-ordenes" class="tab-panel">
 
@@ -585,10 +628,175 @@
     </div>
   </div>
 
+  <!-- MODAL INGREDIENTE -->
+  <div id="modal-ingredient-overlay" class="modal-overlay">
+    <div class="modal">
+      <div class="modal-header">
+        <h3 id="modal-ingredient-title">Nuevo Ingrediente</h3>
+        <button class="modal-close" onclick="closeIngredientModal()">×</button>
+      </div>
+      <div class="modal-body">
+        <form id="form-ingredient">
+          <input type="hidden" id="ing-id">
+          <div class="form-group">
+            <label class="form-label">Nombre *</label>
+            <input type="text" id="ing-nombre" class="form-input" required placeholder="Ej: Leche entera">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Unidad de medida *</label>
+            <select id="ing-unidad" class="form-input" required>
+              <option value="">Seleccionar...</option>
+              <option value="ml">ml</option>
+              <option value="L">L (litros)</option>
+              <option value="g">g</option>
+              <option value="kg">kg</option>
+              <option value="unidad">unidad</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Notas</label>
+            <textarea id="ing-notas" class="form-input" rows="2" placeholder="Opcional"></textarea>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="closeIngredientModal()">Cancelar</button>
+        <button class="btn btn-primary" onclick="saveIngredient()">Guardar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL COMPRA -->
+  <div id="modal-purchase-overlay" class="modal-overlay" data-ingredient-id="">
+    <div class="modal">
+      <div class="modal-header">
+        <h3>Registrar Compra</h3>
+        <button class="modal-close" onclick="closePurchaseModal()">×</button>
+      </div>
+      <div class="modal-body">
+        <p id="modal-purchase-ing-name" style="font-weight:600; margin-bottom:0.25rem;"></p>
+        <p id="modal-purchase-unit-label" style="font-size:0.85rem; color:#718096; margin-bottom:1rem;"></p>
+        <form id="form-purchase">
+          <div class="form-group">
+            <label class="form-label">Cantidad comprada *</label>
+            <input type="number" id="purchase-qty" class="form-input" min="0" step="any" required placeholder="Ej: 1000">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Costo unitario (₡ por unidad/ml/g) *</label>
+            <input type="number" id="purchase-costo-unitario" class="form-input" min="0" step="any" required placeholder="Ej: 1.50">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Fecha *</label>
+            <input type="date" id="purchase-fecha" class="form-input" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Notas</label>
+            <input type="text" id="purchase-notas" class="form-input" placeholder="Opcional">
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="closePurchaseModal()">Cancelar</button>
+        <button class="btn btn-primary" onclick="savePurchase()">Registrar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL HISTORIAL DE COMPRAS -->
+  <div id="modal-purchase-history-overlay" class="modal-overlay">
+    <div class="modal modal-lg">
+      <div class="modal-header">
+        <h3 id="modal-purchase-history-title">Historial de Compras</h3>
+        <button class="modal-close" onclick="closePurchaseHistoryModal()">×</button>
+      </div>
+      <div class="modal-body">
+        <div id="purchase-history-list">
+          <p class="empty-state">Cargando...</p>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="closePurchaseHistoryModal()">Cerrar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL NUEVA TANDA -->
+  <div id="modal-batch-overlay" class="modal-overlay">
+    <div class="modal modal-xl">
+      <div class="modal-header">
+        <h3>Nueva Tanda de Producción</h3>
+        <button class="modal-close" onclick="closeNewBatchModal()">×</button>
+      </div>
+      <div class="modal-body">
+        <!-- Datos generales -->
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Fecha *</label>
+            <input type="date" id="batch-fecha" class="form-input" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Notas</label>
+            <input type="text" id="batch-notas" class="form-input" placeholder="Opcional">
+          </div>
+        </div>
+
+        <!-- Ingredientes generales -->
+        <div class="prod-section-divider">🥛 Ingredientes Generales (toda la tanda)</div>
+        <div id="batch-general-ingredients">
+          <!-- filas generadas por JS -->
+        </div>
+        <button class="btn btn-secondary btn-sm" onclick="addGeneralIngredientRow()" style="margin-top:0.5rem">+ Ingrediente general</button>
+
+        <!-- Sabores -->
+        <div class="prod-section-divider" style="margin-top:1.5rem">🍓 Sabores y Cantidades</div>
+        <div style="display:flex; gap:0.5rem; align-items:center; margin-bottom:1rem;">
+          <select id="batch-flavor-select" class="form-input" style="flex:1">
+            <option value="">Seleccionar sabor...</option>
+          </select>
+          <button class="btn btn-secondary" onclick="addFlavorToBatch()">+ Agregar sabor</button>
+        </div>
+        <div id="batch-flavors-container">
+          <!-- tarjetas de sabor generadas por JS -->
+        </div>
+
+        <!-- Previsualización de costos -->
+        <div class="prod-section-divider" style="margin-top:1.5rem">💰 Previsualización de Costos</div>
+        <div id="batch-cost-preview">
+          <p style="color: var(--color-text-secondary); font-size:0.875rem;">Agregá ingredientes y sabores para ver el costo estimado.</p>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="closeNewBatchModal()">Cancelar</button>
+        <button class="btn btn-primary" onclick="saveNewBatch()">💾 Registrar Tanda</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL DETALLE DE TANDA -->
+  <div id="modal-batch-detail-overlay" class="modal-overlay">
+    <div class="modal modal-lg">
+      <div class="modal-header">
+        <h3 id="batch-detail-title">Detalle de Tanda</h3>
+        <button class="modal-close" onclick="closeBatchDetailModal()">×</button>
+      </div>
+      <div class="modal-body">
+        <div id="batch-detail-content">
+          <p class="empty-state">Cargando...</p>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="closeBatchDetailModal()">Cerrar</button>
+      </div>
+    </div>
+  </div>
+
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="js/config.js?v=2"></script>
   <script src="js/supabase-client.js?v=2"></script>
   <script src="js/admin.js?v=2"></script>
+  <script src="js/production/production-db.js?v=1"></script>
+  <script src="js/production/production-logic.js?v=1"></script>
+  <script src="js/production/production-ui.js?v=1"></script>
 
 </body>
 </html>
