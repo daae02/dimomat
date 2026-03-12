@@ -32,9 +32,19 @@
     }
     .admin-tab.active { color:#FF6B6B; border-bottom-color:#FF6B6B; }
     .admin-tab:hover:not(.active) { color:#2D3748; }
-    @media (max-width: 600px) {
-      .admin-tabs { overflow-x:visible; }
-      .admin-tab { flex:1; padding:0.6rem 0.25rem; font-size:0.78rem; text-align:center; }
+    @media (max-width: 640px) {
+      /* Tabs: scroll horizontal en lugar de squeeze igual-ancho */
+      .admin-tabs { overflow-x: auto; -webkit-overflow-scrolling: touch; padding-bottom: 2px; }
+      .admin-tab  { flex: 0 0 auto; padding: 0.55rem 0.9rem; font-size: 0.82rem; }
+    }
+    @media (max-width: 480px) {
+      /* Ocultar email en header admin en pantallas muy pequeñas */
+      #admin-user-email { display: none; }
+      /* Order search bar: stack en mobile */
+      .order-search-bar { flex-wrap: wrap; }
+      .order-search-bar input { width: 100%; }
+      /* Orders list: compactar columna de fecha */
+      .orders-list-item { grid-template-columns: 1fr auto auto; gap: 0.5rem; }
     }
     .tab-panel { display:none; }
     .tab-panel.active { display:block; }
@@ -97,6 +107,10 @@
       transition:background 0.15s;
     }
     .orders-list-item:hover { background:#FFF5F5; }
+    @media (max-width: 480px) {
+      .orders-list-item { grid-template-columns: 1fr auto auto; gap: 0.4rem; padding: 0.7rem 0.75rem; }
+      .orders-list-item > :first-child { display: none; } /* ocultar ícono de status en mobile */
+    }
   </style>
 </head>
 <body>

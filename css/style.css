@@ -1665,11 +1665,140 @@ body {
   padding: 0.85rem 1.25rem;
 }
 
+/* ================================================
+   MOBILE-FIRST — REVISIÓN COMPLETA UX/UI
+   ================================================ */
+
+/* --- Navbar: más compacta en pantallas muy pequeñas --- */
+@media (max-width: 380px) {
+  .navbar { padding: 0.65rem 1rem; }
+  .navbar-brand { font-size: 1.45rem; }
+  .cart-btn { padding: 0.45rem 0.9rem; font-size: 0.9rem; }
+}
+
+/* --- Hero: padding reducido en mobile --- */
+@media (max-width: 640px) {
+  .hero { padding: 2rem 1rem 1.5rem; }
+  .hero-subtitle { font-size: 0.95rem; margin-bottom: 1rem; }
+}
+
+/* --- Catálogo: sección más compacta --- */
+@media (max-width: 640px) {
+  .catalog-section { padding: 1.25rem 0.875rem; }
+  .section-title { font-size: 1.5rem; }
+  .section-subtitle { font-size: 0.88rem; margin-bottom: 1.25rem; }
+}
+
+/* --- Cards de sabor: más compactas en 2 columnas --- */
+@media (max-width: 640px) {
+  .flavor-card-body { padding: 0.75rem; }
+  .flavor-name { font-size: 0.92rem; }
+  .flavor-desc { font-size: 0.78rem; margin-bottom: 0.5rem; }
+  .flavor-price { font-size: 1rem; }
+  .flavor-stock-badge { font-size: 0.7rem; padding: 0.15rem 0.45rem; }
+  .add-to-cart-btn { font-size: 0.82rem; padding: 0.5rem; margin-top: 0.5rem; }
+}
+
+/* --- Admin: contenido con padding menor en mobile --- */
+@media (max-width: 640px) {
+  .admin-content { padding: 0.875rem; }
+  .admin-header { padding: 0.75rem 1rem; gap: 0.5rem; }
+  .stats-grid { gap: 0.6rem; margin-bottom: 1rem; }
+  .stat-card { padding: 0.9rem 1rem; }
+  .stat-value { font-size: 1.6rem; }
+  .stat-label { font-size: 0.72rem; }
+}
+
+/* --- Stats grid: 2x2 forzado en pantallas pequeñas --- */
+@media (max-width: 480px) {
+  .stats-grid { grid-template-columns: repeat(2, 1fr); }
+}
+
+/* --- Tabla admin: ocultar más columnas en mobile --- */
+@media (max-width: 640px) {
+  /* También ocultar Costo (col 5) en mobile */
+  .admin-table th:nth-child(5),
+  .admin-table td:nth-child(5) { display: none; }
+  .table-header { flex-direction: column; align-items: flex-start; gap: 0.6rem; }
+  .table-header h2 { font-size: 1rem; }
+}
+
+/* --- Admin filter bar: stack en mobile pequeño --- */
+@media (max-width: 480px) {
+  .admin-filter-bar { flex-direction: column; gap: 0.5rem; padding: 0.75rem; }
+  .admin-filter-search-wrap { width: 100%; }
+  .admin-filter-select { width: 100%; }
+}
+
+/* --- Analytics: KPI cards más compactas en mobile --- */
+@media (max-width: 640px) {
+  .analytics-kpi-grid { gap: 0.6rem; }
+  .kpi-card { padding: 0.85rem 0.9rem; }
+  .kpi-value { font-size: 1.1rem; }
+  .kpi-value-sm { font-size: 0.9rem; }
+  .kpi-label { font-size: 0.68rem; }
+  .analytics-insights-box { padding: 0.9rem 1rem; }
+  .insight-line { font-size: 0.82rem; }
+}
+
+/* --- Analytics period bar: mejor layout en mobile --- */
+@media (max-width: 640px) {
+  .analytics-period-bar { flex-direction: column; align-items: flex-start; gap: 0.6rem; padding: 0.75rem; }
+  .analytics-live-badge { margin-left: 0; }
+  .period-btn { font-size: 0.78rem; padding: 0.32rem 0.65rem; }
+}
+
+/* --- Modales: bottom-sheet en mobile para mejor ergonomía --- */
 @media (max-width: 600px) {
+  .modal-overlay { align-items: flex-end; padding: 0; }
+  .modal {
+    border-radius: 20px 20px 0 0;
+    max-height: 92dvh;
+    max-width: 100%;
+  }
+  .modal-footer { flex-direction: column-reverse; gap: 0.5rem; }
+  .modal-footer .btn-primary,
+  .modal-footer .btn-secondary { width: 100%; text-align: center; }
+}
+
+/* --- Order items editor: 2 columnas en mobile --- */
+@media (max-width: 600px) {
+  .order-item-row { grid-template-columns: 1fr auto; gap: 0.4rem; }
+  .order-item-row .order-item-price { display: none; }
+  .order-qty-input { width: 52px; }
+  .order-items-editor { padding: 0.9rem 1rem; }
+  .order-card-header { padding: 0.75rem 1rem; }
+  .order-number-big { font-size: 1.1rem; }
+}
+
+/* --- Chart cards en mobile: altura reducida --- */
+@media (max-width: 640px) {
+  .chart-canvas-wrap { height: 200px; }
+  .chart-canvas-wrap.chart-canvas-tall { height: 180px; }
+  .chart-card { padding: 0.9rem; }
+  .chart-card-title { font-size: 0.85rem; }
+}
+
+/* --- Site footer: más compacto --- */
+@media (max-width: 640px) {
+  .site-footer { padding: 1.5rem 1rem; margin-top: 2rem; }
+}
+
+/* --- Carrito drawer: touch targets más grandes en mobile --- */
+@media (max-width: 640px) {
+  .qty-btn { width: 34px; height: 34px; font-size: 1.1rem; }
+  .cart-items-list { padding: 0.75rem; }
+  .cart-footer { padding: 1rem; padding-bottom: max(1rem, env(safe-area-inset-bottom)); }
+}
+
+/* ================================================ */
+@media (max-width: 600px) {
+  /* Prod subtabs: misma estrategia que admin-tabs → scroll horizontal, tamaño consistente */
+  .prod-subtabs { overflow-x: auto; -webkit-overflow-scrolling: touch; padding-bottom: 2px; }
   .prod-subtab-btn {
-    flex: 1;
-    padding: 0.55rem 0.25rem;
-    font-size: 0.78rem;
+    flex: 0 0 auto;
+    padding: 0.55rem 0.9rem;
+    font-size: 0.82rem;
     text-align: center;
   }
   .prod-flavor-card-header {
