@@ -153,6 +153,7 @@ async function sendWhatsAppOrder() {
   // Abrir WhatsApp con el mensaje (con o sin numero de pedido)
   var message = formatWhatsAppMessage(orderNumber, customerName);
   var url = 'https://wa.me/' + number + '?text=' + encodeURIComponent(message);
+  if (typeof track === 'function') track('whatsapp_order', { items: cart.length, total: getTotal() });
   window.open(url, '_blank');
 
   // Al iniciar el envio por WhatsApp, vaciar carrito local.

@@ -14,6 +14,7 @@ var SAMPLE_FLAVORS = [
 
 var allFlavors = [];
 var activeFilterCat = '';
+var _searchTrackTimer = null;
 
 var CATEGORY_EMOJI = {
   frutal: '🍓',
@@ -197,6 +198,13 @@ function filterCatalog() {
     return matchCat && matchName;
   });
   _renderFilteredCatalog(filtered);
+  // Trackear búsqueda con debounce (800ms) para no spamear por letra
+  if (query && typeof track === 'function') {
+    clearTimeout(_searchTrackTimer);
+    _searchTrackTimer = setTimeout(function () {
+      track('search', { query: query });
+    }, 800);
+  }
 }
 
 function selectFilterChip(btn) {
@@ -204,6 +212,7 @@ function selectFilterChip(btn) {
   btn.classList.add('active');
   activeFilterCat = btn.dataset.cat || '';
   filterCatalog();
+  if (typeof track === 'function') track('filter', { category: activeFilterCat || 'todos' });
 }
 
 function getCartQtyForId(id) {

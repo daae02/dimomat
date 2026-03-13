@@ -1419,6 +1419,7 @@ async function renderAnalytics() {
     renderChartOrdersTimeline(data);
     renderChartFlavorProfit(data);
     renderChartTopProfitFlavors(data);
+    loadBehaviorData();
 
     var updEl = document.getElementById('analytics-last-updated');
     if (updEl) updEl.textContent = new Date().toLocaleTimeString('es-CR', { hour: '2-digit', minute: '2-digit' });
@@ -1430,6 +1431,97 @@ async function renderAnalytics() {
   } finally {
     analyticsIsLoading = false;
   }
+}
+
+// ---- COMPORTAMIENTO DE VISITANTES ----
+
+async function loadBehaviorData() {
+  var loadEl = document.getElementById('behavior-loading');
+  var contEl = document.getElementById('behavior-content');
+  if (loadEl) loadEl.style.display = 'block';
+  if (contEl) contEl.style.display = 'none';
+
+  try {
+    var since = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+    var result = await supabaseClient
+      .from('page_events')
+      .select('session_id,event,props,device')
+      .gte('created_at', since);
+    if (result.error) throw result.error;
+    renderBehavior(result.data || []);
+  } catch (e) {
+    if (loadEl) loadEl.textContent = 'Sin datos de comportamiento aún.';
+  }
+}
+
+function renderBehavior(events) {
+  var visits      = events.filter(function (e) { return e.event === 'pageview'; }).length;
+  var sessions    = new Set(events.map(function (e) { return e.session_id; })).size;
+  var addCarts    = events.filter(function (e) { return e.event === 'add_to_cart'; }).length;
+  var cartOpens   = events.filter(function (e) { return e.event === 'cart_open'; }).length;
+  var waOrders    = events.filter(function (e) { return e.event === 'whatsapp_order'; }).length;
+
+  var leaves = events.filter(function (e) { return e.event === 'page_leave' && e.props && e.props.seconds_on_page; });
+  var avgSec = leaves.length > 0
+    ? leaves.reduce(function (a, e) { return a + (e.props.seconds_on_page || 0); }, 0) / leaves.length
+    : 0;
+  var avgTime = avgSec >= 60
+    ? (avgSec / 60).toFixed(1) + ' min'
+    : Math.round(avgSec) + ' seg';
+
+  function setBkpi(id, val) {
+    var el = document.getElementById('bkpi-' + id);
+    if (el) el.textContent = val;
+  }
+  setBkpi('visits',      visits);
+  setBkpi('sessions',    sessions);
+  setBkpi('add-to-cart', addCarts);
+  setBkpi('cart-opens',  cartOpens);
+  setBkpi('orders',      waOrders);
+  setBkpi('avg-time',    avgTime);
+
+  function topList(items, labelKey, countKey) {
+    return items.sort(function (a, b) { return b[countKey] - a[countKey]; }).slice(0, 5);
+  }
+  function countBy(arr, fn) {
+    var map = {};
+    arr.forEach(function (e) {
+      var k = fn(e);
+      if (k) map[k] = (map[k] || 0) + 1;
+    });
+    return Object.keys(map).map(function (k) { return { label: k, count: map[k] }; });
+  }
+
+  function renderList(elId, items) {
+    var ul = document.getElementById(elId);
+    if (!ul) return;
+    if (!items.length) { ul.innerHTML = '<li style="color:#A0AEC0;font-size:0.8rem">Sin datos aún</li>'; return; }
+    ul.innerHTML = items.map(function (it) {
+      return '<li>' + safeText(it.label) + ' <span>' + it.count + '</span></li>';
+    }).join('');
+  }
+
+  var searches = countBy(
+    events.filter(function (e) { return e.event === 'search' && e.props && e.props.query; }),
+    function (e) { return e.props.query; }
+  );
+  var flavors = countBy(
+    events.filter(function (e) { return e.event === 'add_to_cart' && e.props && e.props.name; }),
+    function (e) { return e.props.name; }
+  );
+  var devices = countBy(
+    events.filter(function (e) { return e.device; }),
+    function (e) { return e.device; }
+  );
+
+  renderList('behavior-searches', topList(searches, 'label', 'count'));
+  renderList('behavior-flavors',  topList(flavors,  'label', 'count'));
+  renderList('behavior-devices',  topList(devices,  'label', 'count'));
+
+  var loadEl = document.getElementById('behavior-loading');
+  var contEl = document.getElementById('behavior-content');
+  if (loadEl) loadEl.style.display = 'none';
+  if (contEl) contEl.style.display = 'block';
 }
 
 // ---- KPIs ----

@@ -62,6 +62,7 @@ function addToCart(flavorId, name, price, stock) {
   saveCart(cart);
   updateCartBadge();
   renderCart();
+  if (typeof track === 'function') track('add_to_cart', { flavor_id: String(flavorId), name: name });
   return true;
 }
 
@@ -163,6 +164,7 @@ function openCart() {
   if (drawer) drawer.classList.add('open');
   renderCart();
   document.body.style.overflow = 'hidden';
+  if (typeof track === 'function') track('cart_open', {});
 }
 
 function closeCart() {

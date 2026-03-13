@@ -263,6 +263,38 @@
         <!-- Content -->
         <div id="analytics-content" style="display:none">
 
+          <!-- Comportamiento de visitantes -->
+          <div class="analytics-behavior-wrap">
+            <div class="chart-card-header" style="margin-bottom:0.75rem">
+              <div class="chart-card-title">👥 Comportamiento de visitantes <span style="font-size:0.75rem;font-weight:500;color:#718096">(últimas 24 h)</span></div>
+            </div>
+            <div id="behavior-loading" style="color:#718096;font-size:0.9rem;padding:0.5rem 0">Cargando...</div>
+            <div id="behavior-content" style="display:none">
+              <div class="behavior-kpi-row">
+                <div class="behavior-kpi"><span id="bkpi-visits">—</span><small>Visitas</small></div>
+                <div class="behavior-kpi"><span id="bkpi-sessions">—</span><small>Sesiones únicas</small></div>
+                <div class="behavior-kpi"><span id="bkpi-add-to-cart">—</span><small>Agr. al carrito</small></div>
+                <div class="behavior-kpi"><span id="bkpi-cart-opens">—</span><small>Carritos abiertos</small></div>
+                <div class="behavior-kpi"><span id="bkpi-orders">—</span><small>Pedidos WhatsApp</small></div>
+                <div class="behavior-kpi"><span id="bkpi-avg-time">—</span><small>Tiempo prom.</small></div>
+              </div>
+              <div class="behavior-lists">
+                <div>
+                  <div class="behavior-list-title">🔍 Búsquedas frecuentes</div>
+                  <ul id="behavior-searches" class="behavior-list"></ul>
+                </div>
+                <div>
+                  <div class="behavior-list-title">🧊 Más agregados al carrito</div>
+                  <ul id="behavior-flavors" class="behavior-list"></ul>
+                </div>
+                <div>
+                  <div class="behavior-list-title">📱 Dispositivos</div>
+                  <ul id="behavior-devices" class="behavior-list"></ul>
+                </div>
+              </div>
+            </div>
+          </div>
+
           <!-- KPI Cards -->
           <div class="analytics-kpi-grid">
             <div class="kpi-card" style="border-left-color:#FF6B6B">
