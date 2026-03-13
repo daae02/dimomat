@@ -24,3 +24,4 @@ function initSupabase() {
 
 // Inicializar al cargar
 supabaseClient = initSupabase();
+window.supabaseClient = supabaseClient;
